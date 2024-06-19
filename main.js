@@ -15,14 +15,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase();
 
-function setDatabase(collectionName, testContent) {
-  const db = getDatabase();
-  set(ref(db, `tests/${collectionName}`), {
+function writeData(collectionName, testContent) {
+  set(ref(database, `tests/${collectionName}`), {
     testContent,
   });
 }
 
-function getData(testId) {
+function readData(testId) {
   const databaseRef = ref(database, `tests/${testId}`);
   onValue(databaseRef, (snapshot) => {
     const data = snapshot.val();
@@ -30,14 +29,14 @@ function getData(testId) {
   });
 }
 
-getData('test');
+readData('test');
 
 const form = document.querySelector('#testForm');
 const input = document.querySelector('#testInput');
 
 form.addEventListener('submit', (e) => {
   e.preventDefault();
-  setDatabase('test', input.value);
+  writeData('test', input.value);
   input.value = '';
 });
 
