@@ -29,17 +29,15 @@ class Con {
   }
 
   #listenForMessages(collectionName) {
-    if (this.#state) {
-      const databaseRef = ref(this.#database, `chats/${collectionName}`);
+    const databaseRef = ref(this.#database, `chats/${collectionName}`);
 
-      onValue(databaseRef, (snapshot) => {
-        const data = snapshot.val();
+    onValue(databaseRef, (snapshot) => {
+      const messages = snapshot.val();
 
-        if (data === null) return;
+      if (messages === null) return;
 
-        console.log(`<${this.#username}>: ${data.messageContent}`);
-      });
-    }
+      console.log(`<${this.#username}>: ${messages.messageContent}`);
+    });
   }
 
   chat() {
