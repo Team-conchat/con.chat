@@ -27,7 +27,7 @@ class Con {
 
   setLanguage(language) {
     if (this.#isStarted()) {
-      console.log('🚫con.chat()을 실행해주세요.');
+      console.log('🚫 con.chat()을 실행해주세요.');
       return;
     }
 
@@ -35,12 +35,12 @@ class Con {
 
     if (this.#isValidLanguage()) {
       console.log(
-        `💁🏻유효하지 않은 언어입니다.\n'js' 또는 'react'를 입력해주세요.`,
+        `💁🏻 유효하지 않은 언어입니다.\n'js' 또는 'react'를 입력해주세요.`,
       );
       return;
     }
 
-    console.log(`💁🏻${this.#language} 관련 메서드 입니다`);
+    console.log(`💁🏻 ${this.#language} 관련 메서드 입니다`);
   }
 }
 
