@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import babel from '@rollup/plugin-babel';
 
 export default defineConfig({
   server: {
@@ -9,4 +10,14 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true,
   },
+  plugins: [
+    babel({
+      babelHelpers: 'bundled',
+      presets: ['@babel/preset-env'],
+      plugins: [
+        '@babel/plugin-proposal-private-methods',
+        '@babel/plugin-proposal-class-properties',
+      ],
+    }),
+  ],
 });
