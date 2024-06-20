@@ -3,6 +3,21 @@ class Con {
 
   #language = null;
 
+  #isStarted() {
+    return this.#state === false;
+  }
+
+  #isValidLanguage() {
+    return this.#language !== 'js' && this.#language !== 'react';
+  }
+
+  #hasValidStateAndLanguage() {
+    return (
+      (this.#language !== 'js' && this.#language !== 'react') ||
+      this.#state !== true
+    );
+  }
+
   chat() {
     this.#state = true;
     console.log(
@@ -11,14 +26,14 @@ class Con {
   }
 
   setLanguage(language) {
-    if (this.#state === false) {
+    if (this.#isStarted()) {
       console.log('🚫con.chat()을 실행해주세요.');
       return;
     }
 
     this.#language = language;
 
-    if (this.#language !== 'js' && this.#language !== 'react') {
+    if (this.#isValidLanguage()) {
       console.log(
         `💁🏻유효하지 않은 언어입니다.\n'js' 또는 'react'를 입력해주세요.`,
       );
