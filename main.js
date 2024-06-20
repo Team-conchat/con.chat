@@ -1,5 +1,4 @@
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, set, onValue } from 'firebase/database';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -13,31 +12,5 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const database = getDatabase();
-
-function writeData(collectionName, testContent) {
-  set(ref(database, `tests/${collectionName}`), {
-    testContent,
-  });
-}
-
-function readData(testId) {
-  const databaseRef = ref(database, `tests/${testId}`);
-  onValue(databaseRef, (snapshot) => {
-    const data = snapshot.val();
-    console.log(data);
-  });
-}
-
-readData('test');
-
-const form = document.querySelector('#testForm');
-const input = document.querySelector('#testInput');
-
-form.addEventListener('submit', (e) => {
-  e.preventDefault();
-  writeData('test', input.value);
-  input.value = '';
-});
 
 export default app;
