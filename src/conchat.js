@@ -9,6 +9,7 @@ class Con {
   #database = getDatabase();
   #username = DEFAULT_USER_NAME;
   #hasUsername = false;
+  #initialDomTree = null;
 
   #isStarted() {
     return this.#state === false;
@@ -16,6 +17,10 @@ class Con {
 
   #isValidLanguage() {
     return this.#language !== 'js' && this.#language !== 'react';
+  }
+
+  #isRendered() {
+    return this.#initialDomTree === null;
   }
 
   #sendMessage(collectionName, messageContent) {
@@ -42,6 +47,10 @@ class Con {
     this.#username = username;
 
     addDataToCollection('users', { username });
+  }
+
+  set initialDomTree(domTree) {
+    this.#initialDomTree = domTree;
   }
 
   chat() {
@@ -118,6 +127,27 @@ class Con {
       }
     })();
   }
+
+  clearChanges() {
+    if (this.#isRendered()) {
+      console.log('🚫 첫 렌더링이 완료된 후 실행할 수 있습니다.');
+
+      return;
+    }
+
+    if (this.#isStarted()) {
+      console.log('🚫 con.chat()을 실행해주세요.');
+
+      return;
+    }
+
+    document.body.innerHTML = this.#initialDomTree;
+    console.log(`💁🏻 DOM이 초기화 되었습니다.`);
+  }
 }
 
 window.con = new Con();
+
+window.addEventListener('DOMContentLoaded', () => {
+  window.con.initialDomTree = document.body.innerHTML;
+});
