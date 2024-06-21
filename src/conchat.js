@@ -18,15 +18,9 @@ class Con {
     return this.#language !== 'js' && this.#language !== 'react';
   }
 
-  #hasValidStateAndLanguage() {
-    return (
-      (this.#language !== 'js' && this.#language !== 'react') ||
-      this.#state !== true
-    );
-  }
-
   #sendMessage(collectionName, messageContent) {
     set(ref(this.#database, `chats/${collectionName}`), {
+      username: this.#username,
       messageContent,
     });
   }
@@ -37,9 +31,9 @@ class Con {
     onValue(databaseRef, (snapshot) => {
       const messages = snapshot.val();
 
-      if (messages === null) return;
+      if (!messages || !messages.messageContent || !messages.username) return;
 
-      console.log(`<${this.#username}>: ${messages.messageContent}`);
+      console.log(`<${messages.username}>: ${messages.messageContent}`);
     });
   }
 
