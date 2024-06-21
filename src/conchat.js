@@ -19,7 +19,7 @@ class Con {
     return this.#language !== 'js' && this.#language !== 'react';
   }
 
-  #isRendered() {
+  #isNotRendered() {
     return this.#initialDomTree === null;
   }
 
@@ -129,8 +129,8 @@ class Con {
   }
 
   clearChanges() {
-    if (this.#isRendered()) {
-      console.log('🚫 첫 렌더링이 완료된 후 실행할 수 있습니다.');
+    if (this.#isNotRendered()) {
+      console.log('🚫 렌더링이 완료된 후 실행할 수 있습니다.');
 
       return;
     }
