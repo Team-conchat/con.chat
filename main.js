@@ -1,4 +1,5 @@
 import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, addDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -13,4 +14,14 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-export default app;
+const store = getFirestore(app);
+
+const addDataToCollection = async (collectionName, data) => {
+  try {
+    await addDoc(collection(store, collectionName), data);
+  } catch (error) {
+    console.error('Error adding document: ', error);
+  }
+};
+
+export { app, addDataToCollection, store };

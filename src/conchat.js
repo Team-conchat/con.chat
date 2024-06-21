@@ -1,11 +1,14 @@
 import { getDatabase, ref, set, onValue } from 'firebase/database';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { addDataToCollection, store } from '../main.js';
+import DEFAULT_USER_NAME from './constant/chat.js';
 
 class Con {
   #state = false;
   #language = null;
-  #username = '아무개';
-
   #database = getDatabase();
+  #username = DEFAULT_USER_NAME;
+  #hasUsername = false;
 
   #isStarted() {
     return this.#state === false;
@@ -40,6 +43,13 @@ class Con {
     });
   }
 
+  #addUserToStore(username) {
+    this.#hasUsername = true;
+    this.#username = username;
+
+    addDataToCollection('users', { username });
+  }
+
   chat() {
     this.#state = true;
     console.log(
@@ -53,6 +63,7 @@ class Con {
   setLanguage(language) {
     if (this.#isStarted()) {
       console.log('🚫 con.chat()을 실행해주세요.');
+
       return;
     }
 
@@ -62,6 +73,7 @@ class Con {
       console.log(
         `💁🏻 유효하지 않은 언어입니다.\n'js' 또는 'react'를 입력해주세요.`,
       );
+
       return;
     }
 
@@ -80,6 +92,37 @@ class Con {
     }
 
     this.#sendMessage('messages', message);
+  }
+
+  configUsername(username) {
+    if (this.#isStarted()) {
+      console.log('🚫 con.chat()을 실행해주세요.');
+
+      return;
+    }
+
+    if (this.#hasUsername) {
+      console.log(`💁🏻 ${this.#username}님, 이미 이름을 설정하셨네요!`);
+
+      return;
+    }
+
+    (async () => {
+      const usersQuery = query(
+        collection(store, 'users'),
+        where('username', '==', username),
+      );
+      const userQuerySnapshot = await getDocs(usersQuery);
+      const isUsernameExists = !userQuerySnapshot.empty;
+
+      if (isUsernameExists) {
+        console.log('🚫 이미 존재하는 이름입니다. 다시 설정해 주세요.');
+      } else {
+        this.#addUserToStore(username);
+
+        console.log(`💁🏻 ${username}님 안녕하세요!`);
+      }
+    })();
   }
 }
 
