@@ -1,4 +1,4 @@
-import { getDatabase, ref, set, onValue } from 'firebase/database';
+import { getDatabase, ref, set, onValue, off } from 'firebase/database';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { addDataToCollection, store } from '../main.js';
 import DEFAULT_USER_NAME from './constant/chat.js';
@@ -10,6 +10,8 @@ class Con {
   #username = DEFAULT_USER_NAME;
   #hasUsername = false;
   #initialDomTree = null;
+  #messageListener = null;
+  #currentRoom = 'public';
 
   #isStarted() {
     return this.#state === false;
@@ -30,16 +32,23 @@ class Con {
     });
   }
 
-  #listenForMessages(collectionName) {
-    const databaseRef = ref(this.#database, `chats/${collectionName}`);
+  #listenForMessages(roomId) {
+    if (this.#messageListener) {
+      off(
+        ref(this.#database, `chats/${this.#currentRoom}`),
+        this.#messageListener,
+      );
+    }
 
-    onValue(databaseRef, (snapshot) => {
+    const databaseRef = ref(this.#database, `chats/${roomId}`);
+    this.#messageListener = onValue(databaseRef, (snapshot) => {
       const messages = snapshot.val();
-
-      if (!messages || !messages.messageContent || !messages.username) return;
+      if (!messages || this.#currentRoom !== roomId) return;
 
       console.log(`<${messages.username}>: ${messages.messageContent}`);
     });
+
+    this.#currentRoom = roomId;
   }
 
   #addUserToStore(username) {
