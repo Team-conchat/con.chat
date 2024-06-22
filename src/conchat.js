@@ -33,7 +33,7 @@ class Con {
   }
 
   #listenForMessages(roomId) {
-    if (this.#messageListener) {
+    if (typeof this.#messageListener === 'function') {
       off(
         ref(this.#database, `chats/${this.#currentRoom}`),
         this.#messageListener,
