@@ -1,5 +1,12 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  doc,
+  updateDoc,
+  arrayUnion,
+} from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -18,10 +25,26 @@ const store = getFirestore(app);
 
 const addDataToCollection = async (collectionName, data) => {
   try {
-    await addDoc(collection(store, collectionName), data);
+    const docRef = await addDoc(collection(store, collectionName), data);
+
+    return docRef.id;
   } catch (error) {
     console.error('Error adding document: ', error);
+
+    throw error;
   }
 };
 
-export { app, addDataToCollection, store };
+const addUserToRoom = async (roomId, username) => {
+  try {
+    const roomRef = doc(store, 'debugRooms', roomId);
+
+    await updateDoc(roomRef, {
+      users: arrayUnion(username),
+    });
+  } catch (error) {
+    console.error('Error adding user to room: ', error);
+  }
+};
+
+export { app, addDataToCollection, addUserToRoom, store };
