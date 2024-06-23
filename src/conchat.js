@@ -10,10 +10,7 @@ import {
 
 import { DEFAULT_USER_NAME, CODE_BLOCK_STYLE } from './constant/chat.js';
 import { getXPath, getElementByXPath } from './utils/element.js';
-import {
-  traverseFragment,
-  findReactRootContainer,
-} from './utils/reactMethod.js';
+import { traverseFragment, findReactRootContainer } from './utils/component.js';
 import isValidCSS from './utils/validation.js';
 
 class Con {
@@ -376,7 +373,9 @@ class Con {
     }
 
     if (this.#language !== 'react') {
-      console.log(`🚫 언어를 ‘react’로 선택해주세요.`);
+      console.log(
+        `🚫 현재 선택된 언어는 ‘react’가 아닙니다. con.setLanguage('react')를 실행해주세요.`,
+      );
 
       return;
     }
