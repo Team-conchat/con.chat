@@ -3,6 +3,7 @@ import {
   getFirestore,
   collection,
   addDoc,
+  getDocs,
   doc,
   updateDoc,
   arrayUnion,
@@ -47,4 +48,17 @@ const addUserToRoom = async (roomId, username) => {
   }
 };
 
-export { app, addDataToCollection, addUserToRoom, store };
+const getRoomNames = async () => {
+  try {
+    const roomsQuery = collection(store, 'debugRooms');
+    const roomsSnapshot = await getDocs(roomsQuery);
+
+    return roomsSnapshot.docs.map((document) => document.data().roomName);
+  } catch (error) {
+    console.error('Error fetching rooms:', error);
+
+    throw error;
+  }
+};
+
+export { app, addDataToCollection, addUserToRoom, getRoomNames, store };
