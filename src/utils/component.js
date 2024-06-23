@@ -6,7 +6,7 @@ const findReactRootContainer = () => {
     const keys = Object.keys(element);
 
     for (let j = 0; j < keys.length; j++) {
-      const key = keys[i];
+      const key = keys[j];
 
       if (key.includes('__reactContainer$')) {
         return element[key].stateNode.current;
@@ -19,7 +19,7 @@ const findReactRootContainer = () => {
   return null;
 };
 
-function traverseFragment(component) {
+const traverseFragment = (component) => {
   const fragmentComponents = ['<React.Fragment />'];
 
   const traverse = (target) => {
@@ -37,6 +37,6 @@ function traverseFragment(component) {
   traverse(component);
 
   return fragmentComponents;
-}
+};
 
 export { traverseFragment, findReactRootContainer };
