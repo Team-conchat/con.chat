@@ -14,5 +14,6 @@ module.exports = {
     'import/no-extraneous-dependencies': 'off',
     'import/extensions': ['error', 'ignorePackages'],
     'lines-between-class-members': 'off',
+    'no-plusplus': 'off',
   },
 };
