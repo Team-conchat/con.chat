@@ -29,12 +29,12 @@ class Con {
     return this.#initialDomTree === null;
   }
 
-  #clearDatabase() {
-    remove(ref(this.#database, '/'))
-      .then()
-      .catch((error) => {
-        console.error('Error clearing database: ', error);
-      });
+  async #clearDatabase() {
+    try {
+      await remove(ref(this.#database, '/'));
+    } catch (error) {
+      console.error('Error clearing database: ', error);
+    }
   }
 
   #sendMessage(collectionName, messageContent) {
