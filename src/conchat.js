@@ -10,6 +10,10 @@ import {
 
 import { DEFAULT_USER_NAME, CODE_BLOCK_STYLE } from './constant/chat.js';
 import { getXPath, getElementByXPath } from './utils/element.js';
+import {
+  traverseFragment,
+  findReactRootContainer,
+} from './utils/reactMethod.js';
 import isValidCSS from './utils/validation.js';
 
 class Con {
@@ -21,6 +25,7 @@ class Con {
   #initialDomTree = null;
   #messageListener = null;
   #currentRoom = 'public';
+  #rootComponent = null;
 
   #isStarted() {
     return this.#state === false;
@@ -77,6 +82,10 @@ class Con {
 
   set initialDomTree(domTree) {
     this.#initialDomTree = domTree;
+  }
+
+  set rootComponent(component) {
+    this.#rootComponent = component;
   }
 
   #applyStyleByXPath(xpath, styleCode, username) {
@@ -358,10 +367,87 @@ class Con {
 
     console.log('💁🏻 스타일이 사용자들의 화면에 적용되었습니다.');
   }
+
+  searchComponents(targetComponentName) {
+    if (this.#isStarted()) {
+      console.log('🚫 con.chat()을 실행해주세요.');
+
+      return;
+    }
+
+    if (this.#language !== 'react') {
+      console.log(`🚫 언어를 ‘react’로 선택해주세요.`);
+
+      return;
+    }
+
+    if (this.#currentRoom === 'public') {
+      console.log('🚫 debug방이 아닌 곳에서 실행할 수 없습니다.');
+
+      return;
+    }
+
+    if (typeof targetComponentName !== 'string') {
+      console.log('🚫 문자열만 사용가능 합니다. 다시 확인해주세요.');
+
+      return;
+    }
+
+    const foundComponents = [];
+
+    function traverseTree(node) {
+      if (!node) return;
+
+      if (
+        typeof node.type === 'function' &&
+        node.type.name === targetComponentName
+      ) {
+        if (node.child) {
+          if (node.child.child && typeof node.child.type !== 'function') {
+            foundComponents.push(node.child.stateNode);
+          } else {
+            foundComponents.push(traverseFragment(node.child));
+          }
+        }
+      }
+
+      if (node.child) {
+        traverseTree(node.child);
+      }
+      if (node.sibling) {
+        traverseTree(node.sibling);
+      }
+    }
+
+    traverseTree(this.#rootComponent);
+
+    if (foundComponents.length === 0) {
+      console.log(
+        '🚫 해당 이름과 일치하는 컴포넌트를 찾을 수 없습니다. 이름을 다시 확인해주세요.',
+      );
+
+      return;
+    }
+
+    foundComponents.forEach((component) => {
+      if (Array.isArray(component)) {
+        component.forEach((item, index) => {
+          if (index > 0) {
+            console.log(` └[${index}]`, item);
+          } else {
+            console.log(item);
+          }
+        });
+      } else {
+        console.log(component);
+      }
+    });
+  }
 }
 
 window.con = new Con();
 
 window.addEventListener('DOMContentLoaded', () => {
   window.con.initialDomTree = document.body.innerHTML;
+  window.con.rootComponent = findReactRootContainer();
 });
