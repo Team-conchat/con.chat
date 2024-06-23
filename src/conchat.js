@@ -1,7 +1,12 @@
 import { getDatabase, ref, set, onValue, remove, off } from 'firebase/database';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
-import { addDataToCollection, addUserToRoom, store } from '../main.js';
+import {
+  addDataToCollection,
+  addUserToRoom,
+  getRoomNames,
+  store,
+} from '../main.js';
 
 import { DEFAULT_USER_NAME, CODE_BLOCK_STYLE } from './constant/chat.js';
 import { getXPath, getElementByXPath } from './utils/element.js';
@@ -234,6 +239,32 @@ class Con {
         }
       } catch (error) {
         console.error('Error creating room:', error);
+      }
+    })();
+  }
+
+  listRooms() {
+    if (this.#isStarted()) {
+      console.log('🚫 con.chat()을 실행해주세요.');
+
+      return;
+    }
+
+    (async () => {
+      try {
+        const rooms = await getRoomNames();
+
+        if (rooms.length === 0) {
+          console.log('🚫 디버깅 방이 없습니다.');
+        } else {
+          console.log('💁🏻 디버깅 방 리스트 입니다. \n\n👇');
+
+          rooms.forEach((room) => {
+            console.log(room);
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching rooms:', error);
       }
     })();
   }
