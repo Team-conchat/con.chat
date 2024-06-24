@@ -54,7 +54,7 @@ class Con {
     }
   }
 
-  #sendMessage(roomId, messageContent) {
+  #sendMessage(roomId, content, type = 'text') {
     const messagesRef = ref(this.#database, `chats/${roomId}/messages`);
     const newMessageKey = push(messagesRef).key;
     const newMessageRef = ref(
@@ -64,9 +64,10 @@ class Con {
 
     set(newMessageRef, {
       username: this.#username,
-      messageContent,
+      content,
       timestamp: Date.now(),
       key: newMessageKey,
+      type,
     });
   }
 
@@ -105,7 +106,13 @@ class Con {
       );
 
       newMessages.forEach((message) => {
-        console.log(`<${message.username}>: ${message.messageContent}`);
+        if (message.type === 'text') {
+          console.log(`<${message.username}>: ${message.content.text}`);
+        } else if (message.type === 'style') {
+          const { xpath, style } = message.content;
+
+          this.#applyStyleByXPath(xpath, style, message.username);
+        }
       });
 
       if (newMessages.length > 0) {
@@ -165,26 +172,6 @@ class Con {
     }
   }
 
-  #listenForStyleChanges() {
-    const databaseRef = ref(this.#database, 'chats/styles');
-
-    onValue(databaseRef, (snapshot) => {
-      const styleUpdate = snapshot.val();
-
-      if (!styleUpdate || !styleUpdate.messageContent) return;
-
-      const parsedUpdate = JSON.parse(styleUpdate.messageContent);
-
-      if (!parsedUpdate.style || !parsedUpdate.xpath) return;
-
-      this.#applyStyleByXPath(
-        parsedUpdate.xpath,
-        parsedUpdate.style,
-        styleUpdate.username,
-      );
-    });
-  }
-
   chat() {
     if (this.#state) return;
 
@@ -197,7 +184,6 @@ class Con {
 
     this.#clearDatabase();
     this.#listenForMessages(this.#currentRoom);
-    this.#listenForStyleChanges();
   }
 
   setLanguage(language) {
@@ -231,7 +217,7 @@ class Con {
       return;
     }
 
-    this.#sendMessage(this.#currentRoom, message);
+    this.#sendMessage(this.#currentRoom, { text: message });
   }
 
   configUsername(username) {
@@ -419,12 +405,12 @@ class Con {
       return;
     }
 
-    const styleUpdate = {
+    const styleContent = {
       xpath,
       style: styleCode,
     };
 
-    this.#sendMessage('styles', JSON.stringify(styleUpdate));
+    this.#sendMessage(this.#currentRoom, styleContent, 'style');
 
     console.log('💁🏻 스타일이 사용자들의 화면에 적용되었습니다.');
   }
