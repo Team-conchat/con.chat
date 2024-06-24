@@ -6,23 +6,13 @@ import {
   remove,
   off,
   push,
-} from 'firebase/database';
-import {
-  collection,
+  get,
   query,
-  where,
-  getDocs,
-  addDoc,
-  setDoc,
-  doc,
-} from 'firebase/firestore';
-
-import {
-  addDataToCollection,
-  addUserToRoom,
-  getRoomNames,
-  store,
-} from '../main.js';
+  orderByChild,
+  equalTo,
+  update,
+  runTransaction,
+} from 'firebase/database';
 
 import { DEFAULT_USER_NAME, CODE_BLOCK_STYLE } from './constant/chat.js';
 import { getXPath, getElementByXPath } from './utils/element.js';
@@ -34,7 +24,7 @@ class Con {
   #language = null;
   #database = getDatabase();
   #username = DEFAULT_USER_NAME;
-  #userId = null;
+  #userKey = null;
   #hasUsername = false;
   #initialDomTree = null;
   #messageListener = null;
@@ -55,40 +45,53 @@ class Con {
     return this.#initialDomTree === null;
   }
 
-  async #clearDatabase() {
-    try {
-      await remove(ref(this.#database, '/'));
-    } catch (error) {
-      console.error('Error clearing database: ', error);
-    }
+  #getRef(path) {
+    return ref(this.#database, path);
   }
 
-  #sendMessage(roomId, content, type = 'text') {
-    const messagesRef = ref(this.#database, `chats/${roomId}/messages`);
-    const newMessageKey = push(messagesRef).key;
-    const newMessageRef = ref(
-      this.#database,
-      `chats/${roomId}/messages/${newMessageKey}`,
-    );
+  async #clearMessages(roomId) {
+    const messagesRef = this.#getRef(`chats/messages/${roomId}`);
 
-    set(newMessageRef, {
+    await remove(messagesRef).catch((error) => {
+      console.error('Error clearing messages:', error);
+    });
+  }
+
+  async #sendMessage(roomId, content, type = 'text') {
+    const messagesRef = this.#getRef(`chats/messages/${roomId}`);
+    const newMessageKey = push(messagesRef).key;
+    const newMessage = {
       username: this.#username,
       content,
       timestamp: Date.now(),
       key: newMessageKey,
       type,
+    };
+
+    await runTransaction(messagesRef, (messages) => {
+      const updatedMessages = messages ? { ...messages } : {};
+      updatedMessages[newMessageKey] = newMessage;
+      return updatedMessages;
+    }).catch((error) => {
+      console.error('Error sending message:', error);
+    });
+  }
+
+  #sendMessageAsync(roomId, content, type = 'text') {
+    this.#sendMessage(roomId, content, type).catch((error) => {
+      console.error('Error in #sendMessageAsync:', error);
     });
   }
 
   #listenForMessages(roomId) {
     if (typeof this.#messageListener === 'function') {
       off(
-        ref(this.#database, `chats/${this.#currentRoom}/messages`),
+        this.#getRef(`chats/${this.#currentRoom}/messages`),
         this.#messageListener,
       );
     }
 
-    const messagesRef = ref(this.#database, `chats/${roomId}/messages`);
+    const messagesRef = this.#getRef(`chats/messages/${roomId}`);
 
     this.#messageListener = onValue(messagesRef, (snapshot) => {
       const messages = [];
@@ -102,7 +105,6 @@ class Con {
         if (messageA.timestamp === messageB.timestamp) {
           return messageA.key.localeCompare(messageB.key);
         }
-
         return messageA.timestamp - messageB.timestamp;
       });
 
@@ -113,64 +115,80 @@ class Con {
             message.key > this.#lastMessageKey),
       );
 
-      newMessages.forEach((message) => {
-        if (message.type === 'text') {
-          console.log(`<${message.username}>: ${message.content.text}`);
-        } else if (message.type === 'style') {
-          const { xpath, style } = message.content;
-
-          this.#applyStyleByXPath(xpath, style, message.username);
-        }
-      });
-
       if (newMessages.length > 0) {
+        newMessages.forEach((message) => {
+          if (message.type === 'text') {
+            console.log(`<${message.username}>: ${message.content.text}`);
+          } else if (message.type === 'style') {
+            const { xpath, style } = message.content;
+            this.#applyStyleByXPath(xpath, style, message.username);
+          }
+        });
+
         const lastMessage = newMessages[newMessages.length - 1];
         this.#lastMessageTimestamp = lastMessage.timestamp;
         this.#lastMessageKey = lastMessage.key;
-      }
-
-      const maxMessages = 10;
-
-      if (messages.length > maxMessages) {
-        const deleteCount = messages.length - maxMessages;
-
-        for (let i = 0; i < deleteCount; i++) {
-          const messageRef = ref(
-            this.#database,
-            `chats/${roomId}/messages/${messages[i].key}`,
-          );
-          remove(messageRef);
-        }
       }
     });
 
     this.#currentRoom = roomId;
   }
 
-  async #addUserToStore(username) {
+  async #addUserToDatabase(username) {
     this.#username = username;
 
-    const userDocRef = await addDoc(collection(store, 'users'), {
+    const usersRef = this.#getRef('chats/users');
+    const newUserRef = push(usersRef);
+
+    await set(newUserRef, {
       username: this.#username,
+      room: this.#currentRoom,
+    }).catch((error) => {
+      console.error('Error adding user:', error);
     });
 
-    this.#userId = userDocRef.id;
+    this.#userKey = newUserRef.key;
   }
 
-  static async #validateUsername(username) {
-    const usersQuery = query(
-      collection(store, 'users'),
-      where('username', '==', username),
-    );
-    const userQuerySnapshot = await getDocs(usersQuery);
+  async #checkForDuplicates(path, field, value) {
+    const refPath = this.#getRef(path);
+    const q = query(refPath, orderByChild(field), equalTo(value));
+    const querySnapshot = await get(q);
 
-    return !userQuerySnapshot.empty;
+    return querySnapshot.exists();
   }
 
-  async #setUsername(username) {
-    await setDoc(doc(store, 'users', this.#userId), { username });
+  async #updateUserName(username) {
+    const userRef = this.#getRef(`chats/users/${this.#userKey}`);
+
+    await update(userRef, { username }).catch((error) => {
+      console.error('Error updating username:', error);
+    });
+
     this.#username = username;
     this.#hasUsername = true;
+  }
+
+  async #updateUsersRoom(roomName) {
+    const userRef = this.#getRef(`chats/users/${this.#userKey}`);
+
+    await update(userRef, { room: roomName }).catch((error) => {
+      console.error('Error updating user room:', error);
+    });
+  }
+
+  async #getRoomList() {
+    const roomsRef = ref(this.#database, 'chats/rooms');
+    const snapshot = await get(roomsRef);
+
+    const rooms = [];
+
+    snapshot?.forEach((childSnapshot) => {
+      const roomName = childSnapshot.val().name;
+      rooms.push(roomName);
+    });
+
+    return rooms;
   }
 
   set initialDomTree(domTree) {
@@ -207,9 +225,10 @@ class Con {
       '🌽conchat을 시작합니다!\n\n우리는 JavaScript와 React 환경에서 채팅이 가능합니다.\n1. JavaScript\n2. React\n어떤 언어를 사용하고 있나요? con.setLanguage("js" 또는 "react")를 입력해주세요!',
     );
 
-    this.#clearDatabase();
-    this.#listenForMessages(this.#currentRoom);
-    this.#addUserToStore(this.#username);
+    this.#clearMessages(this.#currentRoom).then(() => {
+      this.#listenForMessages(this.#currentRoom);
+      this.#addUserToDatabase(this.#username);
+    });
   }
 
   setLanguage(language) {
@@ -243,7 +262,7 @@ class Con {
       return;
     }
 
-    this.#sendMessage(this.#currentRoom, { text: message });
+    this.#sendMessageAsync(this.#currentRoom, { text: message });
   }
 
   configUsername(username) {
@@ -259,12 +278,12 @@ class Con {
       return;
     }
 
-    Con.#validateUsername(username)
+    this.#checkForDuplicates('chats/users', 'username', username)
       .then((isUsernameExists) => {
         if (isUsernameExists) {
           console.log('🚫 이미 존재하는 이름입니다. 다시 설정해 주세요.');
         } else {
-          this.#setUsername(username);
+          this.#updateUserName(username);
 
           console.log(`💁🏻 ${username}님 안녕하세요!`);
         }
@@ -289,37 +308,31 @@ class Con {
       return;
     }
 
-    (async () => {
-      try {
-        const debugRoomQuery = query(
-          collection(store, 'debugRooms'),
-          where('roomName', '==', roomName),
-        );
-        const debugRoomQuerySnapshot = await getDocs(debugRoomQuery);
-
-        if (!debugRoomQuerySnapshot.empty) {
+    this.#checkForDuplicates('chats/rooms', 'name', roomName)
+      .then((isRoomExists) => {
+        if (isRoomExists) {
           console.log('🚫 이미 존재하는 방 이름입니다. 다시 설정해주세요.');
+        } else {
+          const roomsRef = ref(this.#database, 'chats/rooms');
+          const newRoomRef = push(roomsRef);
 
-          return;
-        }
+          set(newRoomRef, {
+            name: roomName,
+            userList: [this.#username],
+          });
 
-        const roomId = await addDataToCollection('debugRooms', { roomName });
-
-        if (roomId) {
           console.log(
-            `💁🏻 ${roomName}에 입장했습니다.\n${roomName}은 디버깅 전용 방입니다.\n\nPRIVATE KEY: ${roomId}`,
+            `💁🏻 ${roomName}에 입장했습니다.\n${roomName}은 디버깅 전용 방입니다.\n\nPRIVATE KEY: ${newRoomRef.key}`,
           );
 
-          this.#listenForMessages(roomId);
-
-          await addUserToRoom(roomId, this.#username);
-        } else {
-          console.log('🚫 방을 생성하는 데 실패했습니다.');
+          this.#currentRoom = newRoomRef.key;
+          this.#listenForMessages(this.#currentRoom);
+          this.#updateUsersRoom(roomName);
         }
-      } catch (error) {
-        console.error('Error creating room:', error);
-      }
-    })();
+      })
+      .catch((error) => {
+        console.error('Error checking room names: ', error);
+      });
   }
 
   listRooms() {
@@ -329,10 +342,8 @@ class Con {
       return;
     }
 
-    (async () => {
-      try {
-        const rooms = await getRoomNames();
-
+    this.#getRoomList()
+      .then((rooms) => {
         if (rooms.length === 0) {
           console.log('🚫 디버깅 방이 없습니다.');
         } else {
@@ -342,10 +353,10 @@ class Con {
             console.log(room);
           });
         }
-      } catch (error) {
+      })
+      .catch((error) => {
         console.error('Error fetching rooms:', error);
-      }
-    })();
+      });
   }
 
   clearChanges() {
@@ -428,12 +439,11 @@ class Con {
       return;
     }
 
-    const styleContent = {
-      xpath,
-      style: styleCode,
-    };
-
-    this.#sendMessage(this.#currentRoom, styleContent, 'style');
+    this.#sendMessageAsync(
+      this.#currentRoom,
+      { xpath, style: styleCode },
+      'style',
+    );
 
     console.log('💁🏻 스타일이 사용자들의 화면에 적용되었습니다.');
   }
