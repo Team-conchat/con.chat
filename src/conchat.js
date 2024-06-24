@@ -1,4 +1,12 @@
-import { getDatabase, ref, set, onValue, remove, off } from 'firebase/database';
+import {
+  getDatabase,
+  ref,
+  set,
+  onValue,
+  remove,
+  off,
+  push,
+} from 'firebase/database';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
 import {
@@ -23,6 +31,8 @@ class Con {
   #messageListener = null;
   #currentRoom = 'public';
   #rootComponent = null;
+  #lastMessageTimestamp = 0;
+  #lastMessageKey = '';
 
   #isStarted() {
     return this.#state === false;
@@ -44,27 +54,81 @@ class Con {
     }
   }
 
-  #sendMessage(collectionName, messageContent) {
-    set(ref(this.#database, `chats/${collectionName}`), {
+  #sendMessage(roomId, messageContent) {
+    const messagesRef = ref(this.#database, `chats/${roomId}/messages`);
+    const newMessageKey = push(messagesRef).key;
+    const newMessageRef = ref(
+      this.#database,
+      `chats/${roomId}/messages/${newMessageKey}`,
+    );
+
+    set(newMessageRef, {
       username: this.#username,
       messageContent,
+      timestamp: Date.now(),
+      key: newMessageKey,
     });
   }
 
   #listenForMessages(roomId) {
     if (typeof this.#messageListener === 'function') {
       off(
-        ref(this.#database, `chats/${this.#currentRoom}`),
+        ref(this.#database, `chats/${this.#currentRoom}/messages`),
         this.#messageListener,
       );
     }
 
-    const databaseRef = ref(this.#database, `chats/${roomId}`);
-    this.#messageListener = onValue(databaseRef, (snapshot) => {
-      const messages = snapshot.val();
-      if (!messages || this.#currentRoom !== roomId) return;
+    const messagesRef = ref(this.#database, `chats/${roomId}/messages`);
 
-      console.log(`<${messages.username}>: ${messages.messageContent}`);
+    this.#messageListener = onValue(messagesRef, (snapshot) => {
+      const messages = [];
+
+      snapshot.forEach((childSnapshot) => {
+        messages.push({ key: childSnapshot.key, ...childSnapshot.val() });
+      });
+
+      if (this.#currentRoom !== roomId) return;
+
+      messages.sort((messageA, messageB) => {
+        if (messageA.timestamp === messageB.timestamp) {
+          return messageA.key.localeCompare(messageB.key);
+        }
+
+        return messageA.timestamp - messageB.timestamp;
+      });
+
+      const newMessages = messages.filter(
+        (message) =>
+          message.timestamp > this.#lastMessageTimestamp ||
+          (message.timestamp === this.#lastMessageTimestamp &&
+            message.key > this.#lastMessageKey),
+      );
+
+      newMessages.forEach((message) => {
+        console.log(`<${message.username}>: ${message.messageContent}`);
+      });
+
+      if (newMessages.length > 0) {
+        const lastMessage = newMessages[newMessages.length - 1];
+
+        this.#lastMessageTimestamp = lastMessage.timestamp;
+        this.#lastMessageKey = lastMessage.key;
+      }
+
+      const maxMessages = 10;
+
+      if (messages.length > maxMessages) {
+        const deleteCount = messages.length - maxMessages;
+
+        for (let i = 0; i < deleteCount; i++) {
+          const messageRef = ref(
+            this.#database,
+            `chats/${roomId}/messages/${messages[i].key}`,
+          );
+
+          remove(messageRef);
+        }
+      }
     });
 
     this.#currentRoom = roomId;
