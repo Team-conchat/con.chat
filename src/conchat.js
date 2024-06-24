@@ -7,7 +7,7 @@ import {
   off,
   push,
 } from 'firebase/database';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 
 import {
   addDataToCollection,
@@ -26,6 +26,7 @@ class Con {
   #language = null;
   #database = getDatabase();
   #username = DEFAULT_USER_NAME;
+  #userId = null;
   #hasUsername = false;
   #initialDomTree = null;
   #messageListener = null;
@@ -141,11 +142,14 @@ class Con {
     this.#currentRoom = roomId;
   }
 
-  #addUserToStore(username) {
-    this.#hasUsername = true;
+  async #addUserToStore(username) {
     this.#username = username;
 
-    addDataToCollection('users', { username });
+    const userDocRef = await addDoc(collection(store, 'users'), {
+      username: this.#username,
+    });
+
+    this.#userId = userDocRef.id;
   }
 
   set initialDomTree(domTree) {
@@ -184,6 +188,7 @@ class Con {
 
     this.#clearDatabase();
     this.#listenForMessages(this.#currentRoom);
+    this.#addUserToStore(this.#username);
   }
 
   setLanguage(language) {
