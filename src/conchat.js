@@ -7,7 +7,15 @@ import {
   off,
   push,
 } from 'firebase/database';
-import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  setDoc,
+  doc,
+} from 'firebase/firestore';
 
 import {
   addDataToCollection,
@@ -84,7 +92,6 @@ class Con {
 
     this.#messageListener = onValue(messagesRef, (snapshot) => {
       const messages = [];
-
       snapshot.forEach((childSnapshot) => {
         messages.push({ key: childSnapshot.key, ...childSnapshot.val() });
       });
@@ -118,7 +125,6 @@ class Con {
 
       if (newMessages.length > 0) {
         const lastMessage = newMessages[newMessages.length - 1];
-
         this.#lastMessageTimestamp = lastMessage.timestamp;
         this.#lastMessageKey = lastMessage.key;
       }
@@ -133,7 +139,6 @@ class Con {
             this.#database,
             `chats/${roomId}/messages/${messages[i].key}`,
           );
-
           remove(messageRef);
         }
       }
@@ -150,6 +155,22 @@ class Con {
     });
 
     this.#userId = userDocRef.id;
+  }
+
+  static async #validateUsername(username) {
+    const usersQuery = query(
+      collection(store, 'users'),
+      where('username', '==', username),
+    );
+    const userQuerySnapshot = await getDocs(usersQuery);
+
+    return !userQuerySnapshot.empty;
+  }
+
+  async #setUsername(username) {
+    await setDoc(doc(store, 'users', this.#userId), { username });
+    this.#username = username;
+    this.#hasUsername = true;
   }
 
   set initialDomTree(domTree) {
@@ -238,22 +259,19 @@ class Con {
       return;
     }
 
-    (async () => {
-      const usersQuery = query(
-        collection(store, 'users'),
-        where('username', '==', username),
-      );
-      const userQuerySnapshot = await getDocs(usersQuery);
-      const isUsernameExists = !userQuerySnapshot.empty;
+    Con.#validateUsername(username)
+      .then((isUsernameExists) => {
+        if (isUsernameExists) {
+          console.log('🚫 이미 존재하는 이름입니다. 다시 설정해 주세요.');
+        } else {
+          this.#setUsername(username);
 
-      if (isUsernameExists) {
-        console.log('🚫 이미 존재하는 이름입니다. 다시 설정해 주세요.');
-      } else {
-        this.#addUserToStore(username);
-
-        console.log(`💁🏻 ${username}님 안녕하세요!`);
-      }
-    })();
+          console.log(`💁🏻 ${username}님 안녕하세요!`);
+        }
+      })
+      .catch((error) => {
+        console.error('Error setting username:', error);
+      });
   }
 
   createDebugRoom(roomName) {
