@@ -5,4 +5,10 @@ const isValidCSS = (styleCode) => {
   return dummyElement.style.length > 0;
 };
 
-export default isValidCSS;
+const isValidPosition = (position) => {
+  const positions = ['beforebegin', 'afterbegin', 'beforeend', 'afterend'];
+
+  return positions.includes(position.toLowerCase());
+};
+
+export { isValidCSS, isValidPosition };
