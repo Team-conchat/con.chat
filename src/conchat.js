@@ -123,7 +123,7 @@ class Con {
         newMessages.forEach((message) => {
           if (message.type === 'text') {
             console.log(`<${message.username}>: ${message.content.text}`);
-          } else if (message.type === 'style') {
+          } else if (message.type === 'changeStyle') {
             const { xpath, style } = message.content;
 
             this.#applyStyleByXPath(xpath, style, message.username);
@@ -133,7 +133,7 @@ class Con {
             if (this.#username !== username) {
               console.log(`${username}님이 입장했습니다.`);
             }
-          } else if (message.type === 'insert') {
+          } else if (message.type === 'insertElement') {
             const { targetXPath, elementXPath, position } = message.content;
 
             this.#applyInsertByXPath(
@@ -142,6 +142,10 @@ class Con {
               position,
               message.username,
             );
+          } else if (message.type === 'changeText') {
+            const { xpath, text } = message.content;
+
+            this.#applyTextByXPath(xpath, text, message.username);
           }
         });
 
@@ -290,6 +294,22 @@ class Con {
 
     if (element) {
       element.style.cssText += styleCode;
+    }
+  }
+
+  #applyTextByXPath(xpath, text, username) {
+    const element = getElementByXPath(xpath);
+
+    if (username !== this.#username) {
+      console.log(
+        `💁🏻 ${username}님이 텍스트를 변경했습니다. \n\n👇 %ccon.changeText('${text}')`,
+        CODE_BLOCK_STYLE,
+      );
+      console.log(element);
+    }
+
+    if (element) {
+      element.textContent = text;
     }
   }
 
@@ -609,10 +629,35 @@ class Con {
     this.#sendMessageAsync(
       this.#currentRoomKey,
       { xpath, style: styleCode },
-      'style',
+      'changeStyle',
     );
 
     console.log('💁🏻 스타일이 사용자들의 화면에 적용되었습니다.');
+  }
+
+  changeText(text) {
+    const targetElement = this.#checkDomPreconditions();
+
+    if (!targetElement) return;
+
+    if (typeof text !== 'string') {
+      console.log('🚫 텍스트는 문자열로 입력해주세요.');
+
+      return;
+    }
+
+    const xpath = getXPath(targetElement);
+    const element = getElementByXPath(xpath);
+
+    if (!element) {
+      console.log('🚫 유효하지 않은 요소입니다. 다른 요소를 선택해주세요.');
+
+      return;
+    }
+
+    this.#sendMessageAsync(this.#currentRoomKey, { xpath, text }, 'changeText');
+
+    console.log('💁🏻 변경된 텍스트가 사용자들의 화면에 적용되었습니다.');
   }
 
   insertElement(element, position) {
@@ -652,7 +697,7 @@ class Con {
         elementXPath,
         position,
       },
-      'insert',
+      'insertElement',
     );
 
     console.log('💁🏻 변경된 요소가 사용자들의 화면에 적용되었습니다.');
