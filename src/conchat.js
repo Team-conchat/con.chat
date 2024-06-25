@@ -170,20 +170,10 @@ class Con {
   }
 
   async #isRoomValid(roomName, roomKey) {
-    const roomsRef = this.#getRef('chats/rooms');
-    const snapshot = await get(roomsRef);
+    const roomRef = this.#getRef(`chats/rooms/${roomKey}`);
+    const snapshot = await get(roomRef);
 
-    let isValidKey = false;
-
-    snapshot.forEach((childSnapshot) => {
-      const roomData = childSnapshot.val();
-
-      if (roomData.name === roomName && childSnapshot.key === roomKey) {
-        isValidKey = true;
-      }
-    });
-
-    return isValidKey;
+    return snapshot.exists() && snapshot.val().name === roomName;
   }
 
   async #checkForDuplicates(path, field, value) {
