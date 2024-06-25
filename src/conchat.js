@@ -14,10 +14,14 @@ import {
   runTransaction,
 } from 'firebase/database';
 
-import { DEFAULT_USER_NAME, CODE_BLOCK_STYLE } from './constant/chat.js';
+import {
+  DEFAULT_USER_NAME,
+  CODE_BLOCK_STYLE,
+  TEXT_BLOCK_STYLE,
+} from './constant/chat.js';
 import { getXPath, getElementByXPath } from './utils/element.js';
 import { traverseFragment, findReactRootContainer } from './utils/component.js';
-import isValidCSS from './utils/validation.js';
+import { isValidCSS, isValidPosition } from './utils/validation.js';
 
 class Con {
   #state = false;
@@ -129,6 +133,15 @@ class Con {
             if (this.#username !== username) {
               console.log(`${username}님이 입장했습니다.`);
             }
+          } else if (message.type === 'insert') {
+            const { targetXPath, elementXPath, position } = message.content;
+
+            this.#applyInsertByXPath(
+              targetXPath,
+              elementXPath,
+              position,
+              message.username,
+            );
           }
         });
 
@@ -278,6 +291,66 @@ class Con {
     if (element) {
       element.style.cssText += styleCode;
     }
+  }
+
+  #applyInsertByXPath(targetXPath, elementXPath, position, username) {
+    const targetElement = getElementByXPath(targetXPath);
+    const element = getElementByXPath(elementXPath);
+
+    if (username !== this.#username) {
+      console.log(
+        `💁🏻 ${username}님이 요소를 변경했습니다. \n\n%c변경된 위치%c\n${position}%c\n%c변경된 요소%c 👇`,
+        TEXT_BLOCK_STYLE,
+        'padding: 5px 0',
+        'padding: 0',
+        TEXT_BLOCK_STYLE,
+        'padding: 0; background-color: none; color: none',
+      );
+      console.log(element);
+    }
+
+    targetElement.insertAdjacentElement(position, element);
+  }
+
+  #checkDomPreconditions() {
+    if (this.#isStarted()) {
+      console.log('🚫 con.chat()을 실행해주세요.');
+
+      return null;
+    }
+
+    if (this.#currentRoomKey === 'public') {
+      console.log('🚫 방을 개설하여 실행해주세요.');
+
+      return null;
+    }
+
+    if (typeof window !== 'undefined' && '$0' in window) {
+      const targetElement = window.$0;
+
+      if (!targetElement) {
+        console.log('🚫 개발자 도구에서 요소를 선택해주세요.');
+
+        return null;
+      }
+
+      if (
+        this.#language === 'react' &&
+        targetElement.tagName.toLowerCase() === 'body'
+      ) {
+        console.log(
+          '🚫 리액트 개발자 도구에서 요소를 선택 후 우측 상단의 👁️‍🗨️ 모양 아이콘을 클릭해 주세요.',
+        );
+
+        return null;
+      }
+
+      return targetElement;
+    }
+
+    console.log('🚫 이 기능은 브라우저 환경에서만 사용 가능합니다.');
+
+    return null;
   }
 
   chat() {
@@ -506,47 +579,12 @@ class Con {
   }
 
   changeStyle(styleCode) {
-    if (this.#isStarted()) {
-      console.log('🚫 con.chat()을 실행해주세요.');
+    const targetElement = this.#checkDomPreconditions();
 
-      return;
-    }
-
-    if (this.#currentRoomKey === 'public') {
-      console.log('🚫 방을 개설하여 실행해주세요.');
-
-      return;
-    }
+    if (!targetElement) return;
 
     if (typeof styleCode !== 'string') {
       console.log('🚫 스타일 코드는 문자열로 입력해주세요.');
-
-      return;
-    }
-
-    let targetElement;
-
-    if (typeof window !== 'undefined' && '$0' in window) {
-      targetElement = window.$0;
-    } else {
-      console.log('🚫 개발자 도구에서 요소를 선택해주세요.');
-
-      return;
-    }
-
-    if (!targetElement) {
-      console.log('🚫 개발자 도구에서 요소를 선택해주세요.');
-
-      return;
-    }
-
-    if (
-      this.#language === 'react' &&
-      targetElement.tagName.toLowerCase() === 'body'
-    ) {
-      console.log(
-        '🚫  리액트 개발자 도구에서 요소를 선택 후 우측 상단의 👁️‍🗨️ 모양 아이콘을 클릭해 주세요.',
-      );
 
       return;
     }
@@ -575,6 +613,49 @@ class Con {
     );
 
     console.log('💁🏻 스타일이 사용자들의 화면에 적용되었습니다.');
+  }
+
+  insertElement(element, position) {
+    const targetElement = this.#checkDomPreconditions();
+
+    if (!targetElement) return;
+
+    const normalizedPosition = position.toLowerCase();
+
+    if (!isValidPosition(normalizedPosition)) {
+      console.log(
+        '🚫 유효한 위치를 입력해주세요. "beforebegin", "afterbegin", "beforeend", "afterend" 중 하나를 사용해야 합니다.',
+      );
+
+      return;
+    }
+
+    if (!(element instanceof HTMLElement)) {
+      console.log('🚫 유효한 DOM 요소가 아닙니다.');
+
+      return;
+    }
+
+    const targetXPath = getXPath(targetElement);
+    const elementXPath = getXPath(element);
+
+    if (!getElementByXPath(targetXPath)) {
+      console.log('🚫 유효하지 않은 요소입니다. 다른 요소를 선택해주세요.');
+
+      return;
+    }
+
+    this.#sendMessageAsync(
+      this.#currentRoomKey,
+      {
+        targetXPath,
+        elementXPath,
+        position,
+      },
+      'insert',
+    );
+
+    console.log('💁🏻 변경된 요소가 사용자들의 화면에 적용되었습니다.');
   }
 
   searchComponents(targetComponentName) {
