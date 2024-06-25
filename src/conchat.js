@@ -28,7 +28,7 @@ class Con {
   #hasUsername = false;
   #initialDomTree = null;
   #messageListener = null;
-  #currentRoom = 'public';
+  #currentRoomKey = 'public';
   #rootComponent = null;
   #lastMessageTimestamp = 0;
   #lastMessageKey = '';
@@ -86,7 +86,7 @@ class Con {
   #listenForMessages(roomId) {
     if (typeof this.#messageListener === 'function') {
       off(
-        this.#getRef(`chats/${this.#currentRoom}/messages`),
+        this.#getRef(`chats/${this.#currentRoomKey}/messages`),
         this.#messageListener,
       );
     }
@@ -99,7 +99,7 @@ class Con {
         messages.push({ key: childSnapshot.key, ...childSnapshot.val() });
       });
 
-      if (this.#currentRoom !== roomId) return;
+      if (this.#currentRoomKey !== roomId) return;
 
       messages.sort((messageA, messageB) => {
         if (messageA.timestamp === messageB.timestamp) {
@@ -121,7 +121,14 @@ class Con {
             console.log(`<${message.username}>: ${message.content.text}`);
           } else if (message.type === 'style') {
             const { xpath, style } = message.content;
+
             this.#applyStyleByXPath(xpath, style, message.username);
+          } else if (message.type === 'enterRoom') {
+            const { username } = message;
+
+            if (this.#username !== username) {
+              console.log(`${username}님이 입장했습니다.`);
+            }
           }
         });
 
@@ -131,7 +138,7 @@ class Con {
       }
     });
 
-    this.#currentRoom = roomId;
+    this.#currentRoomKey = roomId;
   }
 
   async #addUserToDatabase(username) {
@@ -142,12 +149,41 @@ class Con {
 
     await set(newUserRef, {
       username: this.#username,
-      room: this.#currentRoom,
+      room: this.#currentRoomKey,
     }).catch((error) => {
       console.error('Error adding user:', error);
     });
 
     this.#userKey = newUserRef.key;
+  }
+
+  async #createNewRoom(roomName) {
+    const roomsRef = this.#getRef('chats/rooms');
+    const newRoomRef = push(roomsRef);
+
+    set(newRoomRef, {
+      name: roomName,
+      userList: [this.#username],
+    });
+
+    this.#currentRoomKey = newRoomRef.key;
+  }
+
+  async #isRoomValid(roomName, roomKey) {
+    const roomsRef = this.#getRef('chats/rooms');
+    const snapshot = await get(roomsRef);
+
+    let isValidKey = false;
+
+    snapshot.forEach((childSnapshot) => {
+      const roomData = childSnapshot.val();
+
+      if (roomData.name === roomName && childSnapshot.key === roomKey) {
+        isValidKey = true;
+      }
+    });
+
+    return isValidKey;
   }
 
   async #checkForDuplicates(path, field, value) {
@@ -174,6 +210,45 @@ class Con {
 
     await update(userRef, { room: roomName }).catch((error) => {
       console.error('Error updating user room:', error);
+    });
+  }
+
+  async #updateRoomsUserList(roomKey) {
+    const newRoomRef = this.#getRef(`chats/rooms/${roomKey}`);
+    const newRoomSnapshot = await get(newRoomRef);
+
+    if (newRoomSnapshot.exists()) {
+      const newUserList = newRoomSnapshot.val().userList || [];
+
+      if (!newUserList.includes(this.#username)) {
+        newUserList.push(this.#username);
+
+        await update(newRoomRef, { userList: newUserList }).catch((error) => {
+          console.error('Error updating user list for new room:', error);
+        });
+      }
+    }
+  }
+
+  async #removeUserFromAllOtherRooms(currentRoomKey) {
+    const roomsRef = this.#getRef('chats/rooms');
+    const snapshot = await get(roomsRef);
+
+    snapshot.forEach(async (childSnapshot) => {
+      const roomData = childSnapshot.val();
+      const roomKey = childSnapshot.key;
+      const userList = roomData.userList || [];
+
+      if (roomKey !== currentRoomKey && userList.includes(this.#username)) {
+        const newUserList = userList.filter(
+          (username) => username !== this.#username,
+        );
+        const roomUserRef = this.#getRef(`chats/rooms/${roomKey}`);
+
+        await update(roomUserRef, { userList: newUserList }).catch((error) =>
+          console.error(`Error updating user list for room ${roomKey}:`, error),
+        );
+      }
     });
   }
 
@@ -219,14 +294,14 @@ class Con {
     if (this.#state) return;
 
     this.#state = true;
-    this.#currentRoom = 'public';
+    this.#currentRoomKey = 'public';
 
     console.log(
       '🌽conchat을 시작합니다!\n\n우리는 JavaScript와 React 환경에서 채팅이 가능합니다.\n1. JavaScript\n2. React\n어떤 언어를 사용하고 있나요? con.setLanguage("js" 또는 "react")를 입력해주세요!',
     );
 
-    this.#clearMessages(this.#currentRoom).then(() => {
-      this.#listenForMessages(this.#currentRoom);
+    this.#clearMessages(this.#currentRoomKey).then(() => {
+      this.#listenForMessages(this.#currentRoomKey);
       this.#addUserToDatabase(this.#username);
     });
   }
@@ -262,7 +337,7 @@ class Con {
       return;
     }
 
-    this.#sendMessageAsync(this.#currentRoom, { text: message });
+    this.#sendMessageAsync(this.#currentRoomKey, { text: message });
   }
 
   configUsername(username) {
@@ -308,30 +383,94 @@ class Con {
       return;
     }
 
+    if (typeof roomName !== 'string' || roomName.trim() === '') {
+      console.log('🚫 유효한 방 이름을 입력해주세요.');
+
+      return;
+    }
+
     this.#checkForDuplicates('chats/rooms', 'name', roomName)
       .then((isRoomExists) => {
         if (isRoomExists) {
           console.log('🚫 이미 존재하는 방 이름입니다. 다시 설정해주세요.');
         } else {
-          const roomsRef = ref(this.#database, 'chats/rooms');
-          const newRoomRef = push(roomsRef);
-
-          set(newRoomRef, {
-            name: roomName,
-            userList: [this.#username],
-          });
+          this.#createNewRoom(roomName);
 
           console.log(
-            `💁🏻 ${roomName}에 입장했습니다.\n${roomName}은 디버깅 전용 방입니다.\n\nPRIVATE KEY: ${newRoomRef.key}`,
+            `💁🏻 ${roomName}에 입장했습니다.\n${roomName}은 디버깅 전용 방입니다.\n\nPRIVATE KEY: ${this.#currentRoomKey}`,
           );
 
-          this.#currentRoom = newRoomRef.key;
-          this.#listenForMessages(this.#currentRoom);
+          this.#listenForMessages(this.#currentRoomKey);
+          this.#removeUserFromAllOtherRooms(this.#currentRoomKey);
           this.#updateUsersRoom(roomName);
         }
       })
       .catch((error) => {
         console.error('Error checking room names: ', error);
+      });
+  }
+
+  enterDebugRoom(roomName, roomKey) {
+    if (this.#isStarted()) {
+      console.log('🚫 con.chat()을 실행해주세요.');
+
+      return;
+    }
+
+    if (!this.#hasUsername) {
+      console.log(
+        `🚫 사용자 이름이 설정되지 않았습니다.\ncon.configUsername('이름')으로 사용자 이름을 설정해주세요.`,
+      );
+
+      return;
+    }
+
+    if (typeof roomName !== 'string' || roomName.trim() === '') {
+      console.log('🚫 유효한 방 이름을 입력해주세요.');
+
+      return;
+    }
+
+    if (typeof roomKey !== 'string' || roomKey.trim() === '') {
+      console.log('🚫 유효한 KEY를 입력해주세요.');
+
+      return;
+    }
+
+    this.#checkForDuplicates('chats/rooms', 'name', roomName)
+      .then((isRoomExists) => {
+        if (!isRoomExists) {
+          console.log(
+            '🚫 존재하지 않는 방 이름입니다. 방 이름을 다시 확인해주세요.',
+          );
+
+          throw new Error('Room does not exist');
+        } else {
+          return this.#isRoomValid(roomName, roomKey);
+        }
+      })
+      .then((isValidKey) => {
+        if (!isValidKey) {
+          console.log(
+            `🚫 입력하신 KEY가 ${roomName}방의 KEY와 일치하지 않습니다. 다시 시도해주세요.`,
+          );
+        } else {
+          console.log(
+            `💁🏻 ${roomName}방에 입장했습니다. \n${roomName}방은 디버깅 전용 방입니다. \n\n개발자 도구의 요소 탭 또는 React Developer Tools의 Components 탭에서 엘리먼트를 클릭하세요.`,
+          );
+
+          this.#currentRoomKey = roomKey;
+          this.#updateRoomsUserList(this.#currentRoomKey);
+          this.#listenForMessages(this.#currentRoomKey);
+          this.#removeUserFromAllOtherRooms(this.#currentRoomKey);
+          this.#updateUsersRoom(roomName);
+          this.#sendMessageAsync(this.#currentRoomKey, null, 'enterRoom');
+        }
+      })
+      .catch((error) => {
+        if (error.message !== 'Room does not exist') {
+          console.error('Error entering the room: ', error);
+        }
       });
   }
 
@@ -383,7 +522,7 @@ class Con {
       return;
     }
 
-    if (this.#currentRoom === 'public') {
+    if (this.#currentRoomKey === 'public') {
       console.log('🚫 방을 개설하여 실행해주세요.');
 
       return;
@@ -440,7 +579,7 @@ class Con {
     }
 
     this.#sendMessageAsync(
-      this.#currentRoom,
+      this.#currentRoomKey,
       { xpath, style: styleCode },
       'style',
     );
@@ -463,7 +602,7 @@ class Con {
       return;
     }
 
-    if (this.#currentRoom === 'public') {
+    if (this.#currentRoomKey === 'public') {
       console.log('🚫 debug방이 아닌 곳에서 실행할 수 없습니다.');
 
       return;
