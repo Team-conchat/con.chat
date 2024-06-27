@@ -21,7 +21,11 @@ import {
   TEXT_BLOCK_STYLE,
 } from './constant/chat.js';
 import { getXPath, getElementByXPath } from './utils/element.js';
-import { traverseFragment, findReactRootContainer } from './utils/component.js';
+import {
+  traverseFragment,
+  findReactRootContainer,
+  drawComponentTree,
+} from './utils/component.js';
 import { isValidCSS, isValidPosition } from './utils/validation.js';
 
 class Con {
@@ -882,6 +886,30 @@ class Con {
         console.log(component);
       }
     });
+  }
+
+  showComponentTree() {
+    if (this.#isStarted()) {
+      console.log('🚫 con.chat()을 실행해주세요.');
+
+      return;
+    }
+
+    if (this.#language !== 'react') {
+      console.log(
+        `🚫 현재 선택된 언어는 ‘react’가 아닙니다. con.setLanguage('react')를 실행해주세요.`,
+      );
+
+      return;
+    }
+
+    if (this.#currentRoomKey === 'public') {
+      console.log('🚫 debug방이 아닌 곳에서 실행할 수 없습니다.');
+
+      return;
+    }
+
+    drawComponentTree();
   }
 }
 
