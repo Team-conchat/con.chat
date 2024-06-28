@@ -22,9 +22,13 @@ import {
 } from './constant/chat.js';
 import { getXPath, getElementByXPath } from './utils/element.js';
 import {
-  traverseFragment,
   findReactRootContainer,
+  traverseFragment,
   drawComponentTree,
+  logFiberTree,
+  printComponentTree,
+  compareTrees,
+  getCircularReplacer,
 } from './utils/component.js';
 import { isValidCSS, isValidPosition } from './utils/validation.js';
 
@@ -41,6 +45,8 @@ class Con {
   #rootComponent = null;
   #lastMessageTimestamp = 0;
   #lastMessageKey = '';
+  #lastSavedTree = null; // lastSavedTree를 클래스 속성으로 추가
+  #processedMessageKeys = new Set();
 
   #isStarted() {
     return this.#state === false;
@@ -102,7 +108,7 @@ class Con {
 
     const messagesRef = this.#getRef(`chats/messages/${roomId}`);
 
-    this.#messageListener = onValue(messagesRef, (snapshot) => {
+    this.#messageListener = onValue(messagesRef, async (snapshot) => {
       const messages = [];
       snapshot.forEach((childSnapshot) => {
         messages.push({ key: childSnapshot.key, ...childSnapshot.val() });
@@ -115,6 +121,65 @@ class Con {
           return messageA.key.localeCompare(messageB.key);
         }
         return messageA.timestamp - messageB.timestamp;
+      });
+
+      messages.forEach(async (message) => {
+        if (this.#processedMessageKeys.has(message.key)) {
+          return;
+        }
+
+        this.#processedMessageKeys.add(message.key);
+
+        if (
+          message.type === 'requestSaveComponentTree' &&
+          message.username === this.#username
+        ) {
+          console.log(
+            `🔧 ${this.#username}님이 요청한 컴포넌트 트리를 저장합니다.`,
+          );
+
+          await this.#saveComponentTree(message.content.targetUser);
+        } else if (
+          message.type === 'componentTree' &&
+          message.content.targetUser === this.#username
+        ) {
+          console.log(`🔧 ${this.#username}님의 컴포넌트 트리를 수신했습니다.`);
+
+          const treeString = decodeURIComponent(message.content.tree);
+
+          let sharedTree;
+          try {
+            sharedTree = JSON.parse(treeString);
+          } catch (error) {
+            console.error(
+              '🚫 저장된 트리를 파싱하는 중 오류가 발생했습니다:',
+              error,
+            );
+            return;
+          }
+
+          let currentTree = logFiberTree();
+
+          const currentTreeJSON = JSON.stringify(
+            currentTree,
+            getCircularReplacer(),
+          );
+
+          currentTree = JSON.parse(currentTreeJSON);
+
+          const differences = compareTrees(currentTree, sharedTree);
+
+          if (differences.length === 0) {
+            console.log('변경된 state와 props가 없습니다.');
+          } else {
+            printComponentTree(
+              currentTree,
+              differences,
+              this.#username,
+              message.username,
+            );
+          }
+        }
       });
 
       const newMessages = messages.filter(
@@ -231,6 +296,26 @@ class Con {
     return querySnapshot.exists();
   }
 
+  async #isUserInCurrentRoom(username) {
+    const roomRef = this.#getRef(`chats/rooms/${this.#currentRoomKey}`);
+    const roomSnapshot = await get(roomRef);
+    if (!roomSnapshot.exists()) {
+      return false;
+    }
+
+    const userList = roomSnapshot.val().userList || [];
+
+    const userChecks = userList.map(async (userKey) => {
+      const userRef = this.#getRef(`chats/users/${userKey}`);
+      const userSnapshot = await get(userRef);
+      return userSnapshot.exists() && userSnapshot.val().username === username;
+    });
+
+    const results = await Promise.all(userChecks);
+
+    return results.includes(true);
+  }
+
   async #updateUserName(username) {
     const userRef = this.#getRef(`chats/users/${this.#userKey}`);
 
@@ -338,6 +423,45 @@ class Con {
 
   set rootComponent(component) {
     this.#rootComponent = component;
+  }
+
+  async #saveComponentTree(targetUser) {
+    const tree = logFiberTree();
+
+    if (!tree) {
+      console.log('🚫 컴포넌트 트리를 찾을 수 없습니다.');
+
+      return;
+    }
+
+    this.#lastSavedTree = tree;
+
+    const treeString = JSON.stringify(tree, getCircularReplacer());
+    const encodedTreeString = encodeURIComponent(treeString);
+
+    const messageRef = this.#getRef(`chats/messages/${this.#currentRoomKey}`);
+    const newMessageKey = push(messageRef).key;
+
+    try {
+      await set(
+        ref(
+          this.#database,
+          `chats/messages/${this.#currentRoomKey}/${newMessageKey}`,
+        ),
+        {
+          content: {
+            tree: encodedTreeString,
+            targetUser,
+          },
+          key: newMessageKey,
+          timestamp: Date.now(),
+          type: 'componentTree',
+          username: this.#username,
+        },
+      );
+    } catch (error) {
+      console.error('컴포넌트 트리 저장 중 오류가 발생했습니다:', error);
+    }
   }
 
   #applyStyleByXPath(xpath, styleCode, username) {
@@ -1043,6 +1167,52 @@ class Con {
     }
 
     drawComponentTree();
+  }
+
+  shareComponentTree(username) {
+    if (typeof username !== 'string' || username.trim() === '') {
+      console.log('🚫 유효한 이름을 입력해주세요.');
+    }
+
+    this.#isUserInCurrentRoom(username)
+      .then((userExists) => {
+        if (!userExists) {
+          console.log(`🚫 ${username}님이 현재 방에 존재하지 않습니다.`);
+
+          return;
+        }
+
+        const messageRef = this.#getRef(
+          `chats/messages/${this.#currentRoomKey}`,
+        );
+        const newMessageKey = push(messageRef).key;
+
+        set(
+          ref(
+            this.#database,
+            `chats/messages/${this.#currentRoomKey}/${newMessageKey}`,
+          ),
+          {
+            content: {
+              tree: null,
+              targetUser: this.#username,
+            },
+            key: newMessageKey,
+            timestamp: Date.now(),
+            type: 'requestSaveComponentTree',
+            username,
+          },
+        )
+          .then(() => {
+            console.log(`🔧 ${username}에게 컴포넌트 트리 요청을 보냈습니다.`);
+          })
+          .catch((error) => {
+            console.error('Error sending message:', error);
+          });
+      })
+      .catch((error) => {
+        console.error('Error checking if user is in the room:', error);
+      });
   }
 }
 

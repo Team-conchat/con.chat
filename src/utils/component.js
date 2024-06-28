@@ -19,8 +19,6 @@ const findReactRootContainer = () => {
     }
   }
 
-  console.log('🚫 Root를 찾을 수 없습니다.');
-
   return null;
 };
 
@@ -42,6 +40,234 @@ const traverseFragment = (component) => {
   traverse(component);
 
   return fragmentComponents;
+};
+
+const cleanState = (state, seen = new WeakSet()) => {
+  if (!state || typeof state !== 'object' || seen.has(state)) return state;
+
+  seen.add(state);
+
+  const cleanedState = Array.isArray(state) ? [] : {};
+
+  const isValidProp = (key, value) => {
+    const invalidProps = [
+      'baseState',
+      'baseQueue',
+      'deps',
+      'destroy',
+      'create',
+      '_owner',
+      '_store',
+      '_source',
+    ];
+    return (
+      !key.startsWith('_') &&
+      !key.startsWith('$$') &&
+      !invalidProps.includes(key) &&
+      typeof value !== 'function'
+    );
+  };
+
+  Object.keys(state).forEach((key) => {
+    if (isValidProp(key, state[key])) {
+      cleanedState[key] = cleanState(state[key], seen);
+    }
+  });
+
+  if (state.next) {
+    cleanedState.next = cleanState(state.next, seen);
+  }
+
+  return cleanedState;
+};
+
+const cleanProps = (props, seen = new WeakSet()) => {
+  if (!props || typeof props !== 'object' || seen.has(props)) return props;
+
+  seen.add(props);
+
+  const cleanedProps = {};
+
+  const isValidProp = (key, value) => {
+    const invalidProps = ['key', 'type', 'ref', '_owner', '_store', '_source'];
+    return (
+      !key.startsWith('_') &&
+      !key.startsWith('$$') &&
+      !invalidProps.includes(key) &&
+      typeof value !== 'function'
+    );
+  };
+
+  Object.keys(props).forEach((key) => {
+    if (isValidProp(key, props[key])) {
+      cleanedProps[key] = cleanProps(props[key], seen);
+    }
+  });
+
+  return cleanedProps;
+};
+
+const extractFiberData = (node, seen = new WeakSet()) => {
+  if (!node || seen.has(node)) return null;
+
+  seen.add(node);
+
+  const { elementType, child, memoizedState, memoizedProps } = node;
+  const componentName = elementType
+    ? elementType.name || 'Anonymous'
+    : 'HostComponent';
+
+  if (componentName === 'HostComponent') {
+    return extractFiberData(child, seen);
+  }
+
+  const fiberData = {
+    component: componentName,
+    state: cleanState(memoizedState),
+    props: cleanProps(memoizedProps),
+    children: [],
+  };
+
+  let childNode = child;
+  while (childNode) {
+    const childData = extractFiberData(childNode, seen);
+
+    if (childData) {
+      fiberData.children.push(childData);
+    }
+
+    childNode = childNode.sibling;
+  }
+
+  return fiberData;
+};
+
+const logFiberTree = () => {
+  const fiberRoot = findReactRootContainer();
+
+  if (!fiberRoot) return null;
+
+  const tree = extractFiberData(fiberRoot);
+
+  if (tree.component === 'Anonymous' && tree.children.length > 0) {
+    return tree.children[0];
+  }
+
+  return tree;
+};
+
+const compareObjects = (obj1, obj2, path = '') => {
+  const differences = [];
+
+  if (typeof obj1 !== 'object' || typeof obj2 !== 'object') {
+    if (obj1 !== obj2) {
+      differences.push(`${path}: ${obj1} !== ${obj2}`);
+    }
+
+    return differences;
+  }
+
+  if (obj1 === null || obj2 === null) {
+    if (obj1 !== obj2) {
+      differences.push(`${path}: ${obj1} !== ${obj2}`);
+    }
+
+    return differences;
+  }
+
+  const keys1 = Object.keys(obj1).sort();
+  const keys2 = Object.keys(obj2).sort();
+  const allKeys = new Set([...keys1, ...keys2]);
+
+  allKeys.forEach((key) => {
+    if (!keys1.includes(key)) {
+      differences.push(`${path}.${key}: key missing in obj1`);
+    } else if (!keys2.includes(key)) {
+      differences.push(`${path}.${key}: key missing in obj2`);
+    } else {
+      differences.push(
+        ...compareObjects(obj1[key], obj2[key], `${path}.${key}`),
+      );
+    }
+  });
+  return differences;
+};
+
+const compareNodes = (node1, node2, path = '', differences = []) => {
+  if (!node1 || !node2) return;
+
+  if (node1.component !== node2.component) {
+    differences.push(`${path}: ${node1.component} !== ${node2.component}`);
+
+    return;
+  }
+
+  const cleanNode1State = cleanState(node1.state);
+  const cleanNode2State = cleanState(node2.state);
+  const cleanNode1Props = cleanProps(node1.props);
+  const cleanNode2Props = cleanProps(node2.props);
+
+  const stateDifferences = compareObjects(
+    cleanNode1State,
+    cleanNode2State,
+    `${path}.state`,
+  );
+  const propsDifferences = compareObjects(
+    cleanNode1Props,
+    cleanNode2Props,
+    `${path}.props`,
+  );
+
+  if (stateDifferences.length > 0 || propsDifferences.length > 0) {
+    differences.push({
+      path: `${path}/${node1.component}`,
+      current: {
+        state: cleanNode1State,
+        props: cleanNode1Props,
+      },
+      shared: {
+        state: cleanNode2State,
+        props: cleanNode2Props,
+      },
+      stateDifferences,
+      propsDifferences,
+    });
+  }
+
+  for (
+    let i = 0;
+    i < Math.max(node1.children.length, node2.children.length);
+    i++
+  ) {
+    compareNodes(
+      node1.children[i],
+      node2.children[i],
+      `${path}/${node1.component}.children[${i}]`,
+      differences,
+    );
+  }
+};
+
+const compareTrees = (currentTree, sharedTree) => {
+  const differences = [];
+  compareNodes(currentTree, sharedTree, '', differences);
+  return differences;
+};
+
+const getCircularReplacer = () => {
+  const seen = new WeakSet();
+
+  return (key, value) => {
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) {
+        return undefined;
+      }
+
+      seen.add(value);
+    }
+
+    return value;
+  };
 };
 
 const colorize = (text, styles) => {
@@ -92,6 +318,104 @@ const findHostComponent = (fiber) => {
     }
 
     node = node.child;
+  }
+};
+
+const printComponentTree = (
+  fiber,
+  differences,
+  currentUsername,
+  sharedUsername,
+  depth = 0,
+  isLast = true,
+  prefix = '',
+) => {
+  if (!fiber) return '';
+
+  const connector = isLast ? '└─' : '├─';
+  const line = depth > 0 ? `${prefix}${connector}` : '';
+
+  const componentName = fiber.component;
+  const componentType = '▸';
+  const styles = `
+    background-color: #F2CF65;
+    color: #000;
+    padding: 3px 5px;
+    border-radius: 4px;
+  `;
+  const [styledComponentName, styleString] = colorize(componentName, styles);
+
+  const currentDiff = differences.find((diff) =>
+    diff.path.endsWith(`/${componentName}`),
+  );
+
+  if (componentName !== 'Anonymous') {
+    if (currentDiff) {
+      const stateDiff =
+        currentDiff.stateDifferences.length > 0
+          ? currentDiff.stateDifferences.join(', ').split(', ')
+          : ['없음'];
+      const propsDiff =
+        currentDiff.propsDifferences.length > 0
+          ? currentDiff.propsDifferences.join(', ').split(', ')
+          : ['없음'];
+
+      console.log(
+        `${line}${componentType} ${styledComponentName}`,
+        styleString,
+        {
+          [`${sharedUsername}님의 정보`]: {
+            state: currentDiff.shared.state,
+            props: currentDiff.shared.props,
+          },
+          [`${currentUsername}님의 정보`]: {
+            state: currentDiff.current.state,
+            props: currentDiff.current.props,
+          },
+        },
+        {
+          'State 차이점': stateDiff,
+          'Props의 차이점': propsDiff,
+        },
+      );
+    } else {
+      console.log(
+        `${line}${componentType} ${styledComponentName}`,
+        styleString,
+      );
+    }
+
+    fiber.children.forEach((child, index) => {
+      let newPrefix = prefix;
+      if (depth > 0) {
+        newPrefix += isLast ? '  ' : '| ';
+      }
+      printComponentTree(
+        child,
+        differences,
+        currentUsername,
+        sharedUsername,
+        depth + 1,
+        index === fiber.children.length - 1,
+        newPrefix,
+      );
+    });
+  } else {
+    fiber.children.forEach((child, index) => {
+      let newPrefix = prefix;
+      if (depth > 0) {
+        newPrefix += isLast ? '  ' : '| ';
+      }
+      printComponentTree(
+        child,
+        differences,
+        currentUsername,
+        sharedUsername,
+        depth,
+        index === fiber.children.length - 1,
+        newPrefix,
+      );
+    });
   }
 
   return null;
@@ -213,4 +537,12 @@ const drawComponentTree = () => {
   }
 };
 
-export { traverseFragment, findReactRootContainer, drawComponentTree };
+export {
+  findReactRootContainer,
+  traverseFragment,
+  drawComponentTree,
+  logFiberTree,
+  printComponentTree,
+  compareTrees,
+  getCircularReplacer,
+};
