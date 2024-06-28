@@ -145,6 +145,15 @@ class Con {
             const { xpath, text } = message.content;
 
             this.#applyTextByXPath(xpath, text, message.username);
+          } else if (message.type === 'setAttribute') {
+            const { xpath, attrName, attrValue } = message.content;
+
+            this.#applyAttributeByXPath(
+              xpath,
+              attrName,
+              attrValue,
+              message.username,
+            );
           } else if (message.type === 'enterRoom') {
             const { username } = message;
 
@@ -370,6 +379,22 @@ class Con {
     }
 
     targetElement.insertAdjacentElement(position, element);
+  }
+
+  #applyAttributeByXPath(xpath, attrName, attrValue, username) {
+    const element = getElementByXPath(xpath);
+
+    if (username !== this.#username) {
+      console.log(
+        `💁🏻 ${username}님이 속성을 변경했습니다. \n\n👇 %ccon.setAttribute('${attrName}', '${attrValue}')`,
+        CODE_BLOCK_STYLE,
+      );
+      console.log(element);
+    }
+
+    if (element) {
+      element.setAttribute(attrName, attrValue);
+    }
   }
 
   #checkDomPreconditions() {
@@ -765,6 +790,40 @@ class Con {
     this.#sendMessageAsync(this.#currentRoomKey, { xpath, text }, 'changeText');
 
     console.log('💁🏻 변경된 텍스트가 사용자들의 화면에 적용되었습니다.');
+  }
+
+  setAttribute(attrName, attrValue) {
+    const targetElement = this.#checkDomPreconditions();
+
+    if (!targetElement) return;
+
+    if (
+      typeof attrName !== 'string' ||
+      attrName.trim() === '' ||
+      typeof attrValue !== 'string' ||
+      attrValue.trim() === ''
+    ) {
+      console.log('🚫 유효한 문자열을 입력해주세요.');
+
+      return;
+    }
+
+    const xpath = getXPath(targetElement);
+    const element = getElementByXPath(xpath);
+
+    if (!element) {
+      console.log('🚫 유효하지 않은 요소입니다. 다른 요소를 선택해주세요.');
+
+      return;
+    }
+
+    this.#sendMessageAsync(
+      this.#currentRoomKey,
+      { xpath, attrName, attrValue },
+      'setAttribute',
+    );
+
+    console.log('💁🏻 설정한 속성이 사용자들의 화면에 적용되었습니다.');
   }
 
   insertElement(element, position) {
