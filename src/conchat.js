@@ -400,6 +400,8 @@ class Con {
     const targetElement = getElementByXPath(targetElementXPath);
     const parentElement = getElementByXPath(parentXPath);
 
+    if (!targetElement || !parentElement) return;
+
     if (username !== this.#username) {
       console.log(
         `💁🏻 ${username}님이 요소를 삭제했습니다. \n\n%c삭제된 요소%c 👇\n\n%c${targetElementOuterHTML}%c\n\n%c삭제된 요소의 부모 요소%c 👇`,
@@ -906,16 +908,18 @@ class Con {
 
   removeElement(element) {
     const selectedElement = this.#checkDomPreconditions();
+    const targetElement = element || selectedElement;
 
-    if (!selectedElement) return;
+    if (!targetElement) {
+      console.log(`🚫 삭제할 요소를 선택해주세요.`);
+    }
 
-    if (element && !(element instanceof HTMLElement)) {
+    if (targetElement && !(targetElement instanceof HTMLElement)) {
       console.log(`🚫 전달하신 요소는 유효한 DOM 요소가 아닙니다.`);
 
       return;
     }
 
-    const targetElement = element || selectedElement;
     const targetElementXPath = getXPath(targetElement);
     const parentXPath = getXPath(targetElement.parentElement);
     const targetElementOuterHTML = targetElement.outerHTML;
