@@ -141,6 +141,16 @@ class Con {
               position,
               message.username,
             );
+          } else if (message.type === 'removeElement') {
+            const { targetElementXPath, parentXPath, targetElementOuterHTML } =
+              message.content;
+
+            this.#applyRemoveByXPath(
+              targetElementXPath,
+              parentXPath,
+              targetElementOuterHTML,
+              message.username,
+            );
           } else if (message.type === 'changeText') {
             const { xpath, text } = message.content;
 
@@ -379,6 +389,31 @@ class Con {
     }
 
     targetElement.insertAdjacentElement(position, element);
+  }
+
+  #applyRemoveByXPath(
+    targetElementXPath,
+    parentXPath,
+    targetElementOuterHTML,
+    username,
+  ) {
+    const targetElement = getElementByXPath(targetElementXPath);
+    const parentElement = getElementByXPath(parentXPath);
+
+    if (username !== this.#username) {
+      console.log(
+        `💁🏻 ${username}님이 요소를 삭제했습니다. \n\n%c삭제된 요소%c 👇\n\n%c${targetElementOuterHTML}%c\n\n%c삭제된 요소의 부모 요소%c 👇`,
+        TEXT_BLOCK_STYLE,
+        'padding: 0',
+        CODE_BLOCK_STYLE,
+        'padding: 0',
+        TEXT_BLOCK_STYLE,
+        'padding: 0',
+      );
+      console.log(parentElement);
+    }
+
+    targetElement.remove();
   }
 
   #applyAttributeByXPath(xpath, attrName, attrValue, username) {
@@ -867,6 +902,41 @@ class Con {
     );
 
     console.log('💁🏻 변경된 요소가 사용자들의 화면에 적용되었습니다.');
+  }
+
+  removeElement(element) {
+    const selectedElement = this.#checkDomPreconditions();
+
+    if (!selectedElement) return;
+
+    if (element && !(element instanceof HTMLElement)) {
+      console.log(`🚫 전달하신 요소는 유효한 DOM 요소가 아닙니다.`);
+
+      return;
+    }
+
+    const targetElement = element || selectedElement;
+    const targetElementXPath = getXPath(targetElement);
+    const parentXPath = getXPath(targetElement.parentElement);
+    const targetElementOuterHTML = targetElement.outerHTML;
+
+    if (!getElementByXPath(targetElementXPath)) {
+      console.log('🚫 유효하지 않은 요소입니다. 다른 요소를 선택해주세요.');
+
+      return;
+    }
+
+    this.#sendMessageAsync(
+      this.#currentRoomKey,
+      {
+        targetElementXPath,
+        parentXPath,
+        targetElementOuterHTML,
+      },
+      'removeElement',
+    );
+
+    console.log('💁🏻 선택한 요소가 사용자들의 화면에 삭제되었습니다.');
   }
 
   searchComponents(targetComponentName) {
