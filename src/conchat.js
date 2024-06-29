@@ -1241,6 +1241,6 @@ class Con {
 
 window.con = new Con();
 
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('load', () => {
   window.con.initialDomTree = document.body.innerHTML;
 });
