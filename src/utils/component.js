@@ -3,7 +3,7 @@ import {
   ROOT_COMPONENT_BLOCK_STYLE,
 } from '../constant/chat.js';
 
-const findReactRootContainer = () => {
+const getFiberRoot = () => {
   const bodyElements = document.body.children;
 
   for (let i = 0; i < bodyElements.length; i++) {
@@ -159,7 +159,7 @@ const extractFiberData = (node, seen = new Map()) => {
 };
 
 const logFiberTree = () => {
-  const fiberRoot = findReactRootContainer();
+  const fiberRoot = getFiberRoot();
 
   if (!fiberRoot) return null;
 
@@ -585,7 +585,7 @@ const drawComponentTree = () => {
 };
 
 export {
-  findReactRootContainer,
+  getFiberRoot,
   traverseFragment,
   drawComponentTree,
   logFiberTree,
