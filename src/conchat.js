@@ -18,7 +18,12 @@ import {
   PUBLIC_ROOM_KEY,
   DEFAULT_USER_NAME,
   CODE_BLOCK_STYLE,
+  CODE_BLOCK_BOLD_STYLE,
   TEXT_BLOCK_STYLE,
+  TEXT_BLOCK_BOLD_STYLE,
+  GUIDE_CONTENT,
+  START_GUIDE_CONTENT,
+  DEBUG_GUIDE_CONTENT,
 } from './constant/chat.js';
 import { getXPath, getElementByXPath } from './utils/element.js';
 import {
@@ -621,7 +626,32 @@ class Con {
     this.#currentRoomKey = PUBLIC_ROOM_KEY;
 
     console.log(
-      '🌽conchat을 시작합니다!\n\n우리는 JavaScript와 React 환경에서 채팅이 가능합니다.\n1. JavaScript\n2. React\n어떤 언어를 사용하고 있나요? con.setLanguage("js" 또는 "react")를 입력해주세요!',
+      '%c🌽 con.chat을 시작합니다!%c\n\n우리는 JavaScript와 React 환경에서 채팅이 가능합니다.\n어떤 언어를 사용하고 있나요? con.setLanguage("js" 또는 "react")를 입력해주세요!',
+      TEXT_BLOCK_BOLD_STYLE,
+      '',
+    );
+    console.log(
+      START_GUIDE_CONTENT,
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
     );
 
     this.#clearMessages(this.#currentRoomKey).then(() => {
@@ -739,6 +769,29 @@ class Con {
         console.log(
           `💁🏻 ${roomName}에 입장했습니다.\n${roomName}은 디버깅 전용 방입니다.\n\nPRIVATE KEY: ${this.#currentRoomKey}`,
         );
+        console.log(
+          DEBUG_GUIDE_CONTENT,
+          TEXT_BLOCK_BOLD_STYLE,
+          '',
+          CODE_BLOCK_BOLD_STYLE,
+          '',
+          CODE_BLOCK_BOLD_STYLE,
+          '',
+          CODE_BLOCK_BOLD_STYLE,
+          '',
+          CODE_BLOCK_BOLD_STYLE,
+          '',
+          CODE_BLOCK_BOLD_STYLE,
+          '',
+          CODE_BLOCK_BOLD_STYLE,
+          '',
+          CODE_BLOCK_BOLD_STYLE,
+          '',
+          CODE_BLOCK_BOLD_STYLE,
+          '',
+          CODE_BLOCK_BOLD_STYLE,
+          '',
+        );
       })
       .catch((error) => {
         if (error.message !== 'Room does not exist') {
@@ -813,6 +866,29 @@ class Con {
       .then(() => {
         console.log(
           `💁🏻 ${roomName}방에 입장했습니다. \n${roomName}방은 디버깅 전용 방입니다. \n\n개발자 도구의 요소 탭 또는 React Developer Tools의 Components 탭에서 엘리먼트를 클릭하세요.`,
+        );
+        console.log(
+          DEBUG_GUIDE_CONTENT,
+          TEXT_BLOCK_BOLD_STYLE,
+          '',
+          CODE_BLOCK_BOLD_STYLE,
+          '',
+          CODE_BLOCK_BOLD_STYLE,
+          '',
+          CODE_BLOCK_BOLD_STYLE,
+          '',
+          CODE_BLOCK_BOLD_STYLE,
+          '',
+          CODE_BLOCK_BOLD_STYLE,
+          '',
+          CODE_BLOCK_BOLD_STYLE,
+          '',
+          CODE_BLOCK_BOLD_STYLE,
+          '',
+          CODE_BLOCK_BOLD_STYLE,
+          '',
+          CODE_BLOCK_BOLD_STYLE,
+          '',
         );
       })
       .catch((error) => {
@@ -1256,6 +1332,56 @@ class Con {
           console.error('Error checking if user is in the room:', error);
         }
       });
+  }
+
+  showGuide() {
+    if (this.#isStarted()) {
+      console.log('🚫 con.chat()을 실행해주세요.');
+
+      return;
+    }
+
+    console.log(
+      GUIDE_CONTENT,
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+      CODE_BLOCK_BOLD_STYLE,
+      '',
+    );
   }
 
   close() {
