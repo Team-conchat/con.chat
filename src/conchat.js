@@ -22,7 +22,7 @@ import {
 } from './constant/chat.js';
 import { getXPath, getElementByXPath } from './utils/element.js';
 import {
-  findReactRootContainer,
+  getFiberRoot,
   traverseFragment,
   drawComponentTree,
   logFiberTree,
@@ -42,7 +42,6 @@ class Con {
   #initialDomTree = null;
   #messageListener = null;
   #currentRoomKey = PUBLIC_ROOM_KEY;
-  #rootComponent = null;
   #lastMessageTimestamp = 0;
   #lastMessageKey = '';
   #lastSavedTree = null; // lastSavedTree를 클래스 속성으로 추가
@@ -421,10 +420,6 @@ class Con {
     this.#initialDomTree = domTree;
   }
 
-  set rootComponent(component) {
-    this.#rootComponent = component;
-  }
-
   async #saveComponentTree(targetUser) {
     const tree = logFiberTree();
 
@@ -566,7 +561,7 @@ class Con {
     }
 
     if (this.#currentRoomKey === PUBLIC_ROOM_KEY) {
-      console.log('🚫 방을 개설하여 실행해주세요.');
+      console.log('🚫 해당 메서드는 디버깅 방에서 사용 가능합니다.');
 
       return null;
     }
@@ -818,7 +813,7 @@ class Con {
     }
 
     if (this.#currentRoomKey === PUBLIC_ROOM_KEY) {
-      console.log('🚫 현재 전체 채널을 이용 중입니다.');
+      console.log('🚫 해당 메서드는 디버깅 방에서 사용 가능합니다.');
 
       return;
     }
@@ -1083,20 +1078,23 @@ class Con {
     }
 
     if (this.#currentRoomKey === PUBLIC_ROOM_KEY) {
-      console.log('🚫 debug방이 아닌 곳에서 실행할 수 없습니다.');
+      console.log('🚫 해당 메서드는 디버깅 방에서 사용 가능합니다.');
 
       return;
     }
 
-    if (typeof targetComponentName !== 'string') {
-      console.log('🚫 문자열만 사용가능 합니다. 다시 확인해주세요.');
+    if (
+      typeof targetComponentName !== 'string' ||
+      targetComponentName.trim() === ''
+    ) {
+      console.log('🚫 유효한 문자열을 입력해주세요.');
 
       return;
     }
 
     const foundComponents = [];
 
-    function traverseTree(node) {
+    const traverseTree = (node) => {
       if (!node) return;
 
       if (
@@ -1118,9 +1116,10 @@ class Con {
       if (node.sibling) {
         traverseTree(node.sibling);
       }
-    }
+    };
 
-    traverseTree(this.#rootComponent);
+    const fiberRoot = getFiberRoot();
+    traverseTree(fiberRoot);
 
     if (foundComponents.length === 0) {
       console.log(
@@ -1129,6 +1128,8 @@ class Con {
 
       return;
     }
+
+    console.log(`💁🏻 ${targetComponentName} 컴포넌트의 DOM 요소 👇`);
 
     foundComponents.forEach((component) => {
       if (Array.isArray(component)) {
@@ -1242,5 +1243,4 @@ window.con = new Con();
 
 window.addEventListener('DOMContentLoaded', () => {
   window.con.initialDomTree = document.body.innerHTML;
-  window.con.rootComponent = findReactRootContainer();
 });
