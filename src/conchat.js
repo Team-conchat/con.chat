@@ -435,27 +435,6 @@ class Con {
     this.#userKey = null;
   }
 
-  async #removeUserFromRoom(roomKey) {
-    const roomRef = this.#getRef(`chats/rooms/${roomKey}`);
-    const snapshot = await get(roomRef);
-
-    if (snapshot.exists()) {
-      const roomData = snapshot.val();
-      const userList = roomData.userList || [];
-      const newUserList = userList.filter(
-        (userKey) => userKey !== this.#userKey,
-      );
-
-      await update(roomRef, { userList: newUserList }).catch((error) => {
-        console.error(`Error updating user list for room ${roomKey}:`, error);
-      });
-
-      if (newUserList.length === 0) {
-        await this.#deleteRoomIfEmpty(roomKey);
-      }
-    }
-  }
-
   set initialDomTree(domTree) {
     this.#initialDomTree = domTree;
   }
@@ -1280,8 +1259,8 @@ class Con {
   }
 
   close() {
-    if (!this.#state) {
-      console.log('🚫 con.chat()을 실행 중이 아닙니다.');
+    if (this.#isStarted()) {
+      console.log('🚫 con.chat()을 실행해주세요.');
 
       return;
     }
@@ -1303,10 +1282,10 @@ class Con {
         return this.#removeUserFromPreviousRoom(previousRoomKey);
       })
       .then(() => {
-        return this.#removeUserFromDatabase();
-      })
-      .then(() => {
-        return this.#removeUserFromRoom(previousRoomKey);
+        return Promise.all([
+          this.#removeUserFromDatabase(),
+          this.#deleteRoomIfEmpty(previousRoomKey),
+        ]);
       })
       .then(() => {
         this.#state = false;
