@@ -1170,6 +1170,26 @@ class Con {
   }
 
   shareComponentTree(username) {
+    if (this.#isStarted()) {
+      console.log('🚫 con.chat()을 실행해주세요.');
+
+      return;
+    }
+
+    if (this.#language !== 'react') {
+      console.log(
+        `🚫 현재 선택된 언어는 ‘react’가 아닙니다. con.setLanguage('react')를 실행해주세요.`,
+      );
+
+      return;
+    }
+
+    if (this.#currentRoomKey === 'public') {
+      console.log('🚫 debug방이 아닌 곳에서 실행할 수 없습니다.');
+
+      return;
+    }
+
     if (typeof username !== 'string' || username.trim() === '') {
       console.log('🚫 유효한 이름을 입력해주세요.');
     }
@@ -1179,7 +1199,7 @@ class Con {
         if (!userExists) {
           console.log(`🚫 ${username}님이 현재 방에 존재하지 않습니다.`);
 
-          return;
+          return Promise.reject(new Error('User not in room'));
         }
 
         const messageRef = this.#getRef(
@@ -1187,7 +1207,7 @@ class Con {
         );
         const newMessageKey = push(messageRef).key;
 
-        set(
+        return set(
           ref(
             this.#database,
             `chats/messages/${this.#currentRoomKey}/${newMessageKey}`,
@@ -1211,7 +1231,9 @@ class Con {
           });
       })
       .catch((error) => {
-        console.error('Error checking if user is in the room:', error);
+        if (error.message !== 'User not in room') {
+          console.error('Error checking if user is in the room:', error);
+        }
       });
   }
 }

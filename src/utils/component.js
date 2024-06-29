@@ -42,15 +42,15 @@ const traverseFragment = (component) => {
   return fragmentComponents;
 };
 
-const cleanState = (state, seen = new WeakSet()) => {
+const cleanState = (state, seen = new Map()) => {
   if (!state || typeof state !== 'object' || seen.has(state)) return state;
 
-  seen.add(state);
+  seen.set(state, true);
 
   const cleanedState = Array.isArray(state) ? [] : {};
 
-  const isValidProp = (key, value) => {
-    const invalidProps = [
+  const isValidStateProp = (key, value) => {
+    const invalidStateProps = [
       'baseState',
       'baseQueue',
       'deps',
@@ -59,47 +59,63 @@ const cleanState = (state, seen = new WeakSet()) => {
       '_owner',
       '_store',
       '_source',
+      'queue',
+      'tag',
     ];
     return (
       !key.startsWith('_') &&
       !key.startsWith('$$') &&
-      !invalidProps.includes(key) &&
+      !invalidStateProps.includes(key) &&
       typeof value !== 'function'
     );
   };
 
   Object.keys(state).forEach((key) => {
-    if (isValidProp(key, state[key])) {
+    if (key === 'memoizedState') {
+      cleanedState[key] = cleanState(state[key], seen);
+      if (cleanedState[key] && cleanedState[key].next) {
+        delete cleanedState[key].next;
+      }
+    } else if (
+      Object.prototype.hasOwnProperty.call(state, key) &&
+      isValidStateProp(key, state[key])
+    ) {
       cleanedState[key] = cleanState(state[key], seen);
     }
   });
 
-  if (state.next) {
-    cleanedState.next = cleanState(state.next, seen);
-  }
-
   return cleanedState;
 };
 
-const cleanProps = (props, seen = new WeakSet()) => {
+const cleanProps = (props, seen = new Map()) => {
   if (!props || typeof props !== 'object' || seen.has(props)) return props;
 
-  seen.add(props);
+  seen.set(props, true);
 
   const cleanedProps = {};
 
-  const isValidProp = (key, value) => {
-    const invalidProps = ['key', 'type', 'ref', '_owner', '_store', '_source'];
+  const isValidPropsProp = (key, value) => {
+    const invalidPropsProps = [
+      'key',
+      'type',
+      'ref',
+      '_owner',
+      '_store',
+      '_source',
+    ];
     return (
       !key.startsWith('_') &&
       !key.startsWith('$$') &&
-      !invalidProps.includes(key) &&
+      !invalidPropsProps.includes(key) &&
       typeof value !== 'function'
     );
   };
 
   Object.keys(props).forEach((key) => {
-    if (isValidProp(key, props[key])) {
+    if (
+      Object.prototype.hasOwnProperty.call(props, key) &&
+      isValidPropsProp(key, props[key])
+    ) {
       cleanedProps[key] = cleanProps(props[key], seen);
     }
   });
@@ -107,10 +123,10 @@ const cleanProps = (props, seen = new WeakSet()) => {
   return cleanedProps;
 };
 
-const extractFiberData = (node, seen = new WeakSet()) => {
+const extractFiberData = (node, seen = new Map()) => {
   if (!node || seen.has(node)) return null;
 
-  seen.add(node);
+  seen.set(node, true);
 
   const { elementType, child, memoizedState, memoizedProps } = node;
   const componentName = elementType
@@ -123,8 +139,8 @@ const extractFiberData = (node, seen = new WeakSet()) => {
 
   const fiberData = {
     component: componentName,
-    state: cleanState(memoizedState),
-    props: cleanProps(memoizedProps),
+    state: cleanState(memoizedState, new Map(seen)),
+    props: cleanProps(memoizedProps, new Map(seen)),
     children: [],
   };
 
@@ -149,7 +165,7 @@ const logFiberTree = () => {
 
   const tree = extractFiberData(fiberRoot);
 
-  if (tree.component === 'Anonymous' && tree.children.length > 0) {
+  if (tree && tree.component === 'Anonymous' && tree.children.length > 0) {
     return tree.children[0];
   }
 
@@ -161,17 +177,15 @@ const compareObjects = (obj1, obj2, path = '') => {
 
   if (typeof obj1 !== 'object' || typeof obj2 !== 'object') {
     if (obj1 !== obj2) {
-      differences.push(`${path}: ${obj1} !== ${obj2}`);
+      differences.push({ path, value1: obj1, value2: obj2 });
     }
-
     return differences;
   }
 
   if (obj1 === null || obj2 === null) {
     if (obj1 !== obj2) {
-      differences.push(`${path}: ${obj1} !== ${obj2}`);
+      differences.push({ path, value1: obj1, value2: obj2 });
     }
-
     return differences;
   }
 
@@ -181,15 +195,24 @@ const compareObjects = (obj1, obj2, path = '') => {
 
   allKeys.forEach((key) => {
     if (!keys1.includes(key)) {
-      differences.push(`${path}.${key}: key missing in obj1`);
+      differences.push({
+        path: `${path}.${key}`,
+        value1: undefined,
+        value2: obj2[key],
+      });
     } else if (!keys2.includes(key)) {
-      differences.push(`${path}.${key}: key missing in obj2`);
+      differences.push({
+        path: `${path}.${key}`,
+        value1: obj1[key],
+        value2: undefined,
+      });
     } else {
       differences.push(
         ...compareObjects(obj1[key], obj2[key], `${path}.${key}`),
       );
     }
   });
+
   return differences;
 };
 
@@ -319,6 +342,28 @@ const findHostComponent = (fiber) => {
 
     node = node.child;
   }
+
+  return null;
+};
+
+const simplifyPath = (path) => {
+  const stateIndex = path.lastIndexOf('.state');
+  if (stateIndex === -1) return path;
+
+  const afterState = path.substring(stateIndex);
+  const nextMatches = afterState.match(/\.next/g) || [];
+  const nextCount = nextMatches.length;
+
+  return `${nextCount + 1}번째 state`;
+};
+
+const extractValues = (diffArray, currentUsername, sharedUsername) => {
+  if (diffArray.length === 0) return '없음';
+  return diffArray.map((diff) => ({
+    path: simplifyPath(diff.path),
+    [currentUsername]: diff.value1,
+    [sharedUsername]: diff.value2,
+  }));
 };
 
 const printComponentTree = (
@@ -351,14 +396,16 @@ const printComponentTree = (
 
   if (componentName !== 'Anonymous') {
     if (currentDiff) {
-      const stateDiff =
-        currentDiff.stateDifferences.length > 0
-          ? currentDiff.stateDifferences.join(', ').split(', ')
-          : ['없음'];
-      const propsDiff =
-        currentDiff.propsDifferences.length > 0
-          ? currentDiff.propsDifferences.join(', ').split(', ')
-          : ['없음'];
+      const stateDiff = extractValues(
+        currentDiff.stateDifferences,
+        currentUsername,
+        sharedUsername,
+      );
+      const propsDiff = extractValues(
+        currentDiff.propsDifferences,
+        currentUsername,
+        sharedUsername,
+      );
 
       console.log(
         `${line}${componentType} ${styledComponentName}`,
