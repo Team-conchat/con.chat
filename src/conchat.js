@@ -44,7 +44,7 @@ class Con {
   #currentRoomKey = PUBLIC_ROOM_KEY;
   #lastMessageTimestamp = 0;
   #lastMessageKey = '';
-  #lastSavedTree = null; // lastSavedTree를 클래스 속성으로 추가
+  #lastSavedTree = null;
   #processedMessageKeys = new Set();
 
   #isStarted() {
@@ -240,6 +240,12 @@ class Con {
             if (this.#username !== username) {
               console.log(`${username}님이 퇴장했습니다.`);
             }
+          } else if (message.type === 'close') {
+            const { username } = message;
+
+            if (this.#username !== username) {
+              console.log(` ${username}님이 채팅을 종료했습니다.`);
+            }
           }
         });
 
@@ -411,7 +417,41 @@ class Con {
       const userList = snapshot.val().userList || [];
 
       if (userList.length === 0) {
-        await remove(roomRef);
+        await remove(roomRef).catch((error) => {
+          console.error(`Error deleting empty room ${roomKey}:`, error);
+        });
+      }
+    }
+  }
+
+  async #removeUserFromDatabase() {
+    if (!this.#userKey) return;
+
+    const userRef = this.#getRef(`chats/users/${this.#userKey}`);
+    await remove(userRef).catch((error) => {
+      console.error('Error removing user:', error);
+    });
+
+    this.#userKey = null;
+  }
+
+  async #removeUserFromRoom(roomKey) {
+    const roomRef = this.#getRef(`chats/rooms/${roomKey}`);
+    const snapshot = await get(roomRef);
+
+    if (snapshot.exists()) {
+      const roomData = snapshot.val();
+      const userList = roomData.userList || [];
+      const newUserList = userList.filter(
+        (userKey) => userKey !== this.#userKey,
+      );
+
+      await update(roomRef, { userList: newUserList }).catch((error) => {
+        console.error(`Error updating user list for room ${roomKey}:`, error);
+      });
+
+      if (newUserList.length === 0) {
+        await this.#deleteRoomIfEmpty(roomKey);
       }
     }
   }
@@ -598,6 +638,7 @@ class Con {
     if (this.#state) return;
 
     this.#state = true;
+    this.#username = DEFAULT_USER_NAME;
     this.#currentRoomKey = PUBLIC_ROOM_KEY;
 
     console.log(
@@ -1235,6 +1276,47 @@ class Con {
         if (error.message !== 'User not in room') {
           console.error('Error checking if user is in the room:', error);
         }
+      });
+  }
+
+  close() {
+    if (!this.#state) {
+      console.log('🚫 con.chat()을 실행 중이 아닙니다.');
+
+      return;
+    }
+
+    const previousRoomKey = this.#currentRoomKey;
+
+    this.#sendMessage(previousRoomKey, null, 'close')
+      .then(() => {
+        if (this.#messageListener) {
+          off(
+            this.#getRef(`chats/messages/${this.#currentRoomKey}`),
+            this.#messageListener,
+          );
+          this.#messageListener = null;
+        }
+
+        console.log(`🌽conchat을 종료합니다.`);
+
+        return this.#removeUserFromPreviousRoom(previousRoomKey);
+      })
+      .then(() => {
+        return this.#removeUserFromDatabase();
+      })
+      .then(() => {
+        return this.#removeUserFromRoom(previousRoomKey);
+      })
+      .then(() => {
+        this.#state = false;
+        this.#username = null;
+        this.#currentRoomKey = null;
+        this.#hasUsername = false;
+        this.#language = null;
+      })
+      .catch((error) => {
+        console.error('Error closing connection:', error);
       });
   }
 }
