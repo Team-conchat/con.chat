@@ -859,7 +859,7 @@ con.setLanguage("js" 또는 "react")를 입력해주세요!`,
 
           throw new Error('Room key mismatch');
         } else {
-          this.#currentRoomKey = roomKey;
+          this.#currentRoomKey = roomKeyWithDash;
 
           return this.#removeUserFromPreviousRoom(previousRoomKey);
         }
