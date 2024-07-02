@@ -139,7 +139,7 @@ class Con {
           message.username === this.#username
         ) {
           console.log(
-            `🔧 ${this.#username}님이 요청한 컴포넌트 트리를 저장합니다.`,
+            `🔧 ${message.content.targetUser}님이 ${this.#username}님의 컴포넌트 트리를 비교합니다.`,
           );
 
           await this.#saveComponentTree(message.content.targetUser);
@@ -147,7 +147,9 @@ class Con {
           message.type === 'componentTree' &&
           message.content.targetUser === this.#username
         ) {
-          console.log(`🔧 ${this.#username}님의 컴포넌트 트리를 수신했습니다.`);
+          console.log(
+            `🔧 ${message.username}님의 컴포넌트 트리를 수신했습니다.`,
+          );
 
           const treeString = decodeURIComponent(message.content.tree);
 
@@ -799,7 +801,7 @@ con.setLanguage("js" 또는 "react")를 입력해주세요!`,
         const keyWithoutDash = this.#currentRoomKey.slice(1);
 
         console.log(
-          `💁🏻 ${roomName}에 입장했습니다.\n${roomName}은 디버깅 전용 방입니다.\n\nPRIVATE KEY: ${keyWithoutDash}`,
+          `💁🏻 ${roomName}방에 입장했습니다.\n${roomName}은 디버깅 전용 방입니다.\n\nPRIVATE KEY: ${keyWithoutDash}`,
         );
       })
       .catch((error) => {

@@ -49,8 +49,8 @@ const cleanState = (state, seen = new Map()) => {
 
   const cleanedState = Array.isArray(state) ? [] : {};
 
-  const isValidStateProp = (key, value) => {
-    const invalidStateProps = [
+  const isValidState = (key, value) => {
+    const invalidState = [
       'baseState',
       'baseQueue',
       'deps',
@@ -65,7 +65,7 @@ const cleanState = (state, seen = new Map()) => {
     return (
       !key.startsWith('_') &&
       !key.startsWith('$$') &&
-      !invalidStateProps.includes(key) &&
+      !invalidState.includes(key) &&
       typeof value !== 'function'
     );
   };
@@ -78,7 +78,7 @@ const cleanState = (state, seen = new Map()) => {
       }
     } else if (
       Object.prototype.hasOwnProperty.call(state, key) &&
-      isValidStateProp(key, state[key])
+      isValidState(key, state[key])
     ) {
       cleanedState[key] = cleanState(state[key], seen);
     }
@@ -94,19 +94,12 @@ const cleanProps = (props, seen = new Map()) => {
 
   const cleanedProps = {};
 
-  const isValidPropsProp = (key, value) => {
-    const invalidPropsProps = [
-      'key',
-      'type',
-      'ref',
-      '_owner',
-      '_store',
-      '_source',
-    ];
+  const isValidProps = (key, value) => {
+    const invalidProps = ['key', 'type', 'ref', '_owner', '_store', '_source'];
     return (
       !key.startsWith('_') &&
       !key.startsWith('$$') &&
-      !invalidPropsProps.includes(key) &&
+      !invalidProps.includes(key) &&
       typeof value !== 'function'
     );
   };
@@ -114,7 +107,7 @@ const cleanProps = (props, seen = new Map()) => {
   Object.keys(props).forEach((key) => {
     if (
       Object.prototype.hasOwnProperty.call(props, key) &&
-      isValidPropsProp(key, props[key])
+      isValidProps(key, props[key])
     ) {
       cleanedProps[key] = cleanProps(props[key], seen);
     }
@@ -348,13 +341,20 @@ const findHostComponent = (fiber) => {
 
 const simplifyPath = (path) => {
   const stateIndex = path.lastIndexOf('.state');
-  if (stateIndex === -1) return path;
-
-  const afterState = path.substring(stateIndex);
-  const nextMatches = afterState.match(/\.next/g) || [];
-  const nextCount = nextMatches.length;
-
-  return `${nextCount + 1}번째 state`;
+  const propsIndex = path.lastIndexOf('.props');
+  if (stateIndex !== -1) {
+    const afterState = path.substring(stateIndex);
+    const nextMatches = afterState.match(/\.next/g) || [];
+    const nextCount = nextMatches.length;
+    return `${nextCount + 1}번째 state`;
+  }
+  if (propsIndex !== -1) {
+    const afterProps = path.substring(propsIndex);
+    const nextMatches = afterProps.match(/\.next/g) || [];
+    const nextCount = nextMatches.length;
+    return `${nextCount + 1}번째 props`;
+  }
+  return path;
 };
 
 const extractValues = (diffArray, currentUsername, sharedUsername) => {
