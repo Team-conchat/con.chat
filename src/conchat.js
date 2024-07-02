@@ -626,7 +626,11 @@ class Con {
     this.#currentRoomKey = PUBLIC_ROOM_KEY;
 
     console.log(
-      '%c🌽 con.chat을 시작합니다!%c\n\n우리는 JavaScript와 React 환경에서 채팅이 가능합니다.\n어떤 언어를 사용하고 있나요? con.setLanguage("js" 또는 "react")를 입력해주세요!',
+      `%c🌽 Starting con.chat!%c
+
+콘챗은 JavaScript와 React 환경에서 디버깅 모드를 제공합니다.
+현재 어플리케이션은 어떤 언어를 사용하고 있나요?
+con.setLanguage("js" 또는 "react")를 입력해주세요!`,
       TEXT_BLOCK_BOLD_STYLE,
       '',
     );
@@ -677,7 +681,9 @@ class Con {
       return;
     }
 
-    console.log(`💁🏻 ${this.#language} 관련 메서드 입니다`);
+    console.log(
+      `💁🏻 언어가 ${this.#language}로 설정되었습니다.\n\n디버깅 방에서 디버깅 메서드를 사용해보세요!\ncon.showGuide()를 실행하여 다양한 디버깅 메서드를 확인할 수 있습니다.`,
+    );
   }
 
   speak(message) {
@@ -767,9 +773,6 @@ class Con {
       })
       .then(() => {
         console.log(
-          `💁🏻 ${roomName}에 입장했습니다.\n${roomName}은 디버깅 전용 방입니다.\n\nPRIVATE KEY: ${this.#currentRoomKey}`,
-        );
-        console.log(
           DEBUG_GUIDE_CONTENT,
           TEXT_BLOCK_BOLD_STYLE,
           '',
@@ -791,6 +794,12 @@ class Con {
           '',
           CODE_BLOCK_BOLD_STYLE,
           '',
+        );
+
+        const keyWithoutDash = this.#currentRoomKey.slice(1);
+
+        console.log(
+          `💁🏻 ${roomName}에 입장했습니다.\n${roomName}은 디버깅 전용 방입니다.\n\nPRIVATE KEY: ${keyWithoutDash}`,
         );
       })
       .catch((error) => {
@@ -828,6 +837,7 @@ class Con {
     }
 
     const previousRoomKey = this.#currentRoomKey;
+    const roomKeyWithDash = `-${roomKey}`;
 
     this.#checkForDuplicates('chats/rooms', 'name', roomName)
       .then((isRoomExists) => {
@@ -838,7 +848,7 @@ class Con {
 
           throw new Error('Room does not exist');
         } else {
-          return this.#isRoomValid(roomName, roomKey);
+          return this.#isRoomValid(roomName, roomKeyWithDash);
         }
       })
       .then((isValidKey) => {
@@ -865,9 +875,6 @@ class Con {
       })
       .then(() => {
         console.log(
-          `💁🏻 ${roomName}방에 입장했습니다. \n${roomName}방은 디버깅 전용 방입니다. \n\n개발자 도구의 요소 탭 또는 React Developer Tools의 Components 탭에서 엘리먼트를 클릭하세요.`,
-        );
-        console.log(
           DEBUG_GUIDE_CONTENT,
           TEXT_BLOCK_BOLD_STYLE,
           '',
@@ -889,6 +896,10 @@ class Con {
           '',
           CODE_BLOCK_BOLD_STYLE,
           '',
+        );
+
+        console.log(
+          `💁🏻 ${roomName}방에 입장했습니다. \n${roomName}방은 디버깅 전용 방입니다. \n\n개발자 도구의 요소 탭 또는 React Developer Tools의 Components 탭에서 엘리먼트를 클릭하세요.`,
         );
       })
       .catch((error) => {
@@ -1343,6 +1354,8 @@ class Con {
 
     console.log(
       GUIDE_CONTENT,
+      TEXT_BLOCK_BOLD_STYLE,
+      '',
       CODE_BLOCK_BOLD_STYLE,
       '',
       CODE_BLOCK_BOLD_STYLE,
@@ -1428,6 +1441,19 @@ class Con {
 
 window.con = new Con();
 
-window.addEventListener('load', () => {
-  window.con.initialDomTree = document.body.innerHTML;
+window.addEventListener('DOMContentLoaded', () => {
+  const reactRoot = getFiberRoot()?.stateNode?.containerInfo;
+  const rootDom = reactRoot || document.body;
+
+  const observer = new MutationObserver((mutations, obs) => {
+    if (rootDom.children.length > 0) {
+      window.con.initialDomTree = document.body.innerHTML;
+      obs.disconnect();
+    }
+  });
+
+  observer.observe(rootDom, {
+    childList: true,
+    subtree: true,
+  });
 });

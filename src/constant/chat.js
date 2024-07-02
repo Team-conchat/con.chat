@@ -42,7 +42,7 @@ const TEXT_BLOCK_BOLD_STYLE = `
 `;
 
 const GUIDE_CONTENT = `
-🌽 con.chat 사용 가이드 🌽
+%c🌽 User Guide for con.chat 🌽%c
 
 --------------------------------------------
 
@@ -235,7 +235,7 @@ const START_GUIDE_CONTENT = `
 `;
 
 const DEBUG_GUIDE_CONTENT = `
-%c🐞 디버깅 메서드 입니다. 🥊%c
+%c🐞 List of debug methods 🐞%c
 
 --------------------------------------------
 
