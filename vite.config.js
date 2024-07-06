@@ -10,6 +10,12 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true,
   },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/setupTests.js',
+    testMatch: ['./src/spec/*.spec.jsx'],
+  },
   plugins: [
     babel({
       babelHelpers: 'bundled',
