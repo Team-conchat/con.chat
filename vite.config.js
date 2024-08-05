@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import babel from '@rollup/plugin-babel';
+import { version } from './package.json';
 
 export default defineConfig({
   server: {
@@ -7,8 +8,14 @@ export default defineConfig({
     open: true,
   },
   build: {
-    outDir: 'dist',
-    sourcemap: true,
+    rollupOptions: {
+      input: ['./main.js'],
+      output: {
+        entryFileNames: `v${version}/assets/[name].js`,
+        chunkFileNames: `v${version}/assets/[name]-[hash].js`,
+        assetFileNames: `v${version}/assets/[name].[ext]`,
+      },
+    },
   },
   test: {
     globals: true,

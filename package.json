@@ -1,11 +1,12 @@
 {
   "name": "con.chat",
   "private": true,
-  "version": "0.20.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "deploy": "npm run build && node deploy-script.js",
     "preview": "vite preview",
     "prepare": "husky install",
     "test": "vitest",

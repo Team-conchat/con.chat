@@ -6,3 +6,14 @@
     Access-Control-Allow-Headers = "Content-Type, Authorization"
     Content-Security-Policy = "default-src 'self' https: data: 'unsafe-eval' 'unsafe-inline'"
     X-Content-Type-Options = "nosniff"
+[build]
+  command = "npm run deploy"
+  publish = "dist"
+[[redirects]]
+  from = "/latest/*"
+  to = "/v:version/:splat"
+  status = 302
+[[redirects]]
+  from = "/v:version/*"
+  to = "/v:version/:splat"
+  status = 200
