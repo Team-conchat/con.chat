@@ -1,5 +1,10 @@
-const fs = require('fs-extra');
-const { version } = require('./package.json');
+import fs from 'fs-extra';
+import { readFile } from 'fs/promises';
+
+const packageJson = JSON.parse(
+  await readFile(new URL('./package.json', import.meta.url)),
+);
+const { version } = packageJson;
 
 const sourceDir = 'dist';
 const targetDir = `dist/v${version}`;
