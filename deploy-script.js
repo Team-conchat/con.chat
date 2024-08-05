@@ -7,24 +7,21 @@ const packageJson = JSON.parse(
 );
 const { version } = packageJson;
 
-const sourceDir = 'dist';
-const tempDir = `temp_v${version}`;
-const targetDir = `dist/v${version}`;
+const distDir = 'dist';
+const versionDir = `v${version}`;
 
-if (fs.existsSync(tempDir)) {
-  fs.removeSync(tempDir);
+if (fs.existsSync(path.join(distDir, versionDir, 'assets'))) {
+  console.log(
+    `Correct structure already exists: ${path.join(distDir, versionDir)}`,
+  );
+} else {
+  const tempDir = `temp_${versionDir}`;
+
+  fs.copySync(distDir, tempDir);
+
+  fs.emptyDirSync(distDir);
+
+  fs.moveSync(tempDir, path.join(distDir, versionDir));
+
+  console.log(`Restructured to: ${path.join(distDir, versionDir)}`);
 }
-fs.copySync(sourceDir, tempDir);
-
-if (fs.existsSync(targetDir)) {
-  fs.removeSync(targetDir);
-}
-
-fs.moveSync(tempDir, targetDir);
-
-const distContents = fs.readdirSync(sourceDir);
-distContents.forEach((item) => {
-  if (item !== `v${version}`) {
-    fs.removeSync(path.join(sourceDir, item));
-  }
-});
