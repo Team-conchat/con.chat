@@ -230,8 +230,10 @@ Firebase의 Realtime Database는 데이터 베이스 변경 사항을 실시간�
 메서드 내부의 로직이 콘솔창에 노출되어, 사용자가 의도치 않게 내부 로직에 접근할 수 있는 문제가 발생했습니다.
 예를 들어, `‘isValidLanguage’` 메서드는 선택한 언어가 유효한지 확인하는 로직을 담고 있지만, 사용자가 이를 확인할 필요가 없었습니다. 이러한 문제는 보안과 사용성 측면에서 문제가 되었습니다.
 
-<center><img width="500" alt="메서드내부로직노출" src="https://github.com/user-attachments/assets/01f257d8-7a30-4bbe-bac0-cb0d2af4bb22"></center>
-<center><i>콘솔창에서 클래스 메서드 사용 시 내부 로직이 노출되는 모습</i></center>
+<p align="center">
+<img width="500" alt="메서드내부로직노출" src="https://github.com/user-attachments/assets/01f257d8-7a30-4bbe-bac0-cb0d2af4bb22"><br>
+<i>콘솔창에서 클래스 메서드 사용 시 내부 로직이 노출되는 모습</i>
+</p>
 <br/>
 
 문제의 원인으로는 메서드 내부의 하위 로직들이 은닉화되지 않아 콘솔창에 쉽게 접근할 수 있었던 것인데요.
@@ -466,8 +468,10 @@ async #sendMessage(roomId, content, type) {
 
 저희는 $0이 참조하는 요소를 XPath로 반환하는 재귀 함수를 구현하였습니다. 이 함수는 대상 요소에서 시작하여 루트 노드까지 재귀적으로 부모 노드를 탐색합니다. 결론적으로 각 부모 노드의 경로를 조합하여, 문서의 루트 노드(/html/body/) 또는 고유 식별자를 가진 요소(대상 요소의 부모 요소 중 ID를 가진 요소)부터 시작하여 대상 요소까지의 절대 경로를 문자열로 반환합니다.
 
-<center><img width="400" alt="XPath" src="https://github.com/user-attachments/assets/76798335-2f79-4f1a-9dc1-4203a72a7f59"></center>
-<center><i>로고를 담고 있는 a태그가 XPath로  변환되어 DB에 전송된 모습</i></center>
+<p align="center">
+<img width="400" alt="XPath" src="https://github.com/user-attachments/assets/76798335-2f79-4f1a-9dc1-4203a72a7f59"><br>
+<i>로고를 담고 있는 a태그가 XPath로  변환되어 DB에 전송된 모습</i>
+</p>
 <br/><br/>
 
 이제 수신자는 발신자가 선택한 요소를 XPath로서 동일한 요소를 참조할 수 있게 되었습니다. 수신자는 전달받은 XPath를 이용하여 다시 DOM 요소를 탐색하는 과정을 거쳐야 합니다. 이는 DOM API의 document.evaluate 메서드를 사용하여 XPath 평가할 수 있습니다. 결과적으로 발신자와 수신자는 동일한 요소를 참조하게 되고 각각의 클라이언트 환경에서 동일한 DOM 조작 로직을 처리하게 됩니다. 이로써, 실시간으로 DOM 조작을 동기화 하여, 여러 사용자 간의 인터페이스 공유를 실현할 수 있게 되었습니다.
@@ -513,9 +517,11 @@ con.chat의 핵심 기능 중 하나는 React 애플리케이션의 컴포넌트
 
 아래는 렌더링된 DOM 트리의 최상위 요소로부터 탐색하여 실제 FiberNode를 콘솔창에 출력한 결과입니다. 저희가 처음 FiberNode를 마주했을 때는 객체 안에 굉장히 많은 속성들을 담고 있어, 저희가 구현하기 위한 기능(컴포넌트 트리 출력, 컴포넌트 트리 비교)을 위해 꼭 필요한 속성들이 무엇인지 정의하는 과정이 필요하다고 판단했습니다.
 
-<center>
-<img width="500" alt="FiberNode" src="https://github.com/user-attachments/assets/6dc79e83-b86d-4bf3-962f-17d26c52806f"></center>
-<center><i>최상위 DOM 요소로 부터 FiberNode를 추출한 결과</i></center>
+<p align="center">
+<img width="500" alt="FiberNode" src="https://github.com/user-attachments/assets/6dc79e83-b86d-4bf3-962f-17d26c52806f"><br>
+<i>최상위 DOM 요소로 부터 FiberNode를 추출한 결과</i>
+</p>
+
 <br/>
 
 Fiber 노드는 근본적으로 React의 렌더링 및 재조정 프로세스를 효율적으로 관리하기 위한 아키텍처로 작업 우선순위를 나타내는 `lanes`, `childLanes` 또는 side effects 유형을 나타내는 `effectTag`, 상태 및 속성을 나타내는 `memoizedProps`, `memoizedState`, `pendingProps` 등 매우 많은 속성이 존재합니다. <br> 
@@ -548,13 +554,16 @@ Fiber 노드는 근본적으로 React의 렌더링 및 재조정 프로세스를
 아래의 예시는 con.chat 가이드를 제공하는 웹 화면에서 볼 수 있는 샘플 레이아웃입니다. 실제 이 화면에 대한 컴포넌트 트리를 콘솔창에 그린다고 가정할 때,`child`, `sibling` 속성을 이용해 트리를 탐색하는 과정을 간략하게 설명드리겠습니다.
 
 
-<center>
-<img width="1000" alt="Layout" src="https://github.com/user-attachments/assets/7277c2df-c2b7-4f68-8510-0cb4f8e32a67"></center>
-<center><i>샘플 레이아웃 화면의 컴포넌트 구조</i></center>
+<p align="center">
+<img width="1000" alt="Layout" src="https://github.com/user-attachments/assets/7277c2df-c2b7-4f68-8510-0cb4f8e32a67"><br>
+<i>샘플 레이아웃 화면의 컴포넌트 구조</i>
+</p>
 <br>
-<center>
-<img width="1000" alt="Fiber" src="https://github.com/user-attachments/assets/7819a7ae-ba1e-4bc1-bb62-6bdc9543589c"></center>
-<center><i>샘플 레이아웃 화면의 리액트 컴포넌트 트리와 DOM 트리의 시각화</i></center>
+<p align="center">
+<img width="1000" alt="Fiber" src="https://github.com/user-attachments/assets/7819a7ae-ba1e-4bc1-bb62-6bdc9543589c"><br>
+<i>샘플 레이아웃 화면의 리액트 컴포넌트 트리와 DOM 트리의 시각화</i>
+</p>
+
 <br>
 
 #### 컴포넌트 트리 탐색 과정
@@ -571,10 +580,10 @@ Fiber 노드는 근본적으로 React의 렌더링 및 재조정 프로세스를
 
 <br>
 
-
-<center>
-<img width="300" alt="FiberNode" src="https://github.com/user-attachments/assets/dcaf7768-83ce-41f0-b848-26acdb9aa7ac"></center>
-<center><i>컴포넌트 트리 출력 결과</i></center>
+<p align="center">
+<img width="300" alt="FiberNode" src="https://github.com/user-attachments/assets/dcaf7768-83ce-41f0-b848-26acdb9aa7ac"><br>
+<i>컴포넌트 트리 출력 결과</i>
+</p>
 
 <br>
 
