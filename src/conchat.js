@@ -741,16 +741,16 @@ con.setLanguage("js" 또는 "react")를 입력해주세요!`,
       return;
     }
 
-    if (!this.#hasUsername) {
-      console.log(
-        `🚫 사용자 이름이 설정되지 않았습니다.\ncon.configUsername('이름')으로 사용자 이름을 설정해주세요.`,
-      );
+    if (typeof roomName !== 'string' || roomName.trim() === '') {
+      console.log('🚫 유효한 방 이름을 입력해주세요.');
 
       return;
     }
 
-    if (typeof roomName !== 'string' || roomName.trim() === '') {
-      console.log('🚫 유효한 방 이름을 입력해주세요.');
+    if (!this.#hasUsername) {
+      console.log(
+        `🚫 사용자 이름이 설정되지 않았습니다.\ncon.configUsername('이름')으로 사용자 이름을 설정해주세요.`,
+      );
 
       return;
     }
@@ -763,9 +763,9 @@ con.setLanguage("js" 또는 "react")를 입력해주세요!`,
           console.log('🚫 이미 존재하는 방 이름입니다. 다시 설정해주세요.');
 
           throw new Error('Room does not exist');
-        } else {
-          return this.#createNewRoom(roomName);
         }
+
+        return this.#createNewRoom(roomName);
       })
       .then(() => {
         return this.#removeUserFromPreviousRoom(previousRoomKey);
