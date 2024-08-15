@@ -37,7 +37,7 @@ import {
 } from './utils/component.js';
 import { isValidCSS, isValidPosition } from './utils/validation.js';
 
-class Con {
+export default class Con {
   #state = false;
   #language = null;
   #database = getDatabase();
@@ -71,9 +71,11 @@ class Con {
   async #clearMessages(roomId) {
     const messagesRef = this.#getRef(`chats/messages/${roomId}`);
 
-    await remove(messagesRef).catch((error) => {
+    try {
+      await remove(messagesRef);
+    } catch (error) {
       console.error('Error clearing messages:', error);
-    });
+    }
   }
 
   async #sendMessage(roomId, content, type = 'text') {
@@ -268,17 +270,19 @@ class Con {
   async #addUserToDatabase(username) {
     this.#username = username;
 
-    const usersRef = this.#getRef('chats/users');
-    const newUserRef = push(usersRef);
+    try {
+      const usersRef = this.#getRef('chats/users');
+      const newUserRef = push(usersRef);
 
-    await set(newUserRef, {
-      username: this.#username,
-      room: this.#currentRoomKey,
-    }).catch((error) => {
+      await set(newUserRef, {
+        username: this.#username,
+        room: this.#currentRoomKey,
+      });
+
+      this.#userKey = newUserRef.key;
+    } catch (error) {
       console.error('Error adding user:', error);
-    });
-
-    this.#userKey = newUserRef.key;
+    }
   }
 
   async #createNewRoom(roomName) {
