@@ -20,8 +20,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: './src/setupTests.js',
-    testMatch: ['./src/spec/*.spec.jsx'],
+    setupFiles: ['./src/test/setup.js'],
   },
   plugins: [
     babel({
