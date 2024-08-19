@@ -8,7 +8,7 @@
 con.chat은 <b>브라우저 개발자 도구의 콘솔창</b>을 이용하여 동일한 웹사이트를 <br>사용하고 있는 유저들 간에 <b>실시간 채팅</b> 서비스를 제공하는 라이브러리입니다. <br>
 또한 Javascript 또는 React로 개발된 웹사이트에서 언어별 메서드를 이용한 <br><b>DOM 조작</b> 및 <b>컴포넌트 트리 비교</b> 기능을 통해 간편한 디버깅 환경을 제공합니다.
 
-<br>
+<br><br>
 
 <a href="https://con-chat.com/">Guide Website</a> | <a href="https://github.com/Team-macoss/con.chat">CDN Repository</a> | <a href="https://github.com/Team-macoss/con.chat-guide">Guide Repository</a>
 
@@ -643,8 +643,8 @@ con.chat의 핵심 기능 중 하나는 React 애플리케이션의 컴포넌트
 ### 5-2. 그래서 Fiber 노드로 어떻게 컴포넌트 트리를 그릴 수 있을까?
 
 > [!NOTE]
-> **Fiber? Fiber Node?**
-> React Fiber 노드는 React 16에서 도입된 React의 내부 재조정(reconciliation) 엔진의 핵심 개념입니다. Fiber 아키텍처의 기본 작업 단위로, React 애플리케이션의 구조와 상태를 표현합니다.
+> **Fiber? Fiber Node?** <br>
+> React Fiber 노드는 React 16에서 도입된 React의 내부 재조정(reconciliation) 엔진의 핵심 개념입니다. <br>Fiber 아키텍처의 기본 작업 단위로, React 애플리케이션의 구조와 상태를 표현합니다.
 
 쉽게 말해, Fiber 노드는 React 컴포넌트 트리의 내부 표현이며, 각 Fiber 노드는 컴포넌트 정보와 트리 구조를 표현하는 여러가지 속성을 가지고 있어, 이를 활용하여 컴포넌트 트리를 그릴 수 있었습니다.
 
@@ -751,7 +751,7 @@ Fiber 노드는 근본적으로 React의 렌더링 및 재조정 프로세스를
   </table>
 </div>
 
-2. **JSON 변환 과정에서의 참조 순환 문제**
+2. **JSON 변환 과정에서의 순환 참조 문제**
 
 객체 구조를 단순화한 후, 이를 JSON으로 변환하려고 했을 때 순환 참조 에러라는 새로운 문제에 직면했습니다. 순환 참조란 객체가 직접 또는 간접적으로 자기 자신을 참조하는 상황을 말합니다.
 
