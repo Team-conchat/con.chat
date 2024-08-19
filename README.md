@@ -5,37 +5,34 @@
 </p>
 
 <div align="center">
-con.chat은 <b>브라우저 개발자 도구의 콘솔창</b>을 이용하여 동일한 웹사이트를 사용하고 있는 유저들 간에 <b>실시간 채팅</b> 서비스를 제공하는 라이브러리입니다. 
-또한 Javascript 또는 React로 개발된 웹사이트에서 언어별 메서드를 이용한 <b>DOM 조작</b> 및 <b>컴포넌트 트리 비교</b> 기능을 통해 간편한 디버깅 환경을 제공합니다.
+con.chat은 <b>브라우저 개발자 도구의 콘솔창</b>을 이용하여 동일한 웹사이트를 <br>사용하고 있는 유저들 간에 <b>실시간 채팅</b> 서비스를 제공하는 라이브러리입니다. <br>
+또한 Javascript 또는 React로 개발된 웹사이트에서 언어별 메서드를 이용한 <br><b>DOM 조작</b> 및 <b>컴포넌트 트리 비교</b> 기능을 통해 간편한 디버깅 환경을 제공합니다.
+
+<br>
+
+<a href=“https://con-chat.com/”>Guide Website</a> | <a href=“https://github.com/Team-macoss/con.chat”>CDN Repository</a> | <a href=“https://github.com/Team-macoss/con.chat-guide”>Guide Repository</a>
 </div>
 
 <br><br>
 
-## 🔗 Links
-
-[Deployed website](https://conchat.netlify.app/) | [con.chat core Repository](https://github.com/Team-macoss/con.chat) | [con.chat guide Repository](https://github.com/Team-macoss/con.chat-guide)
-
-<br><br>
-
-## 🗂️ 목차
+## 목차
 
 - [**🌽 con.chat**](#con.chat)
-- [**🔗 Links**](#Links)
-- [**💡 기획 동기**](#기획-동기)
-- [**🔧 기술 스택**](#기술-스택)
-- [**🔎 기능 설명**](#기능-설명)
-- [**☄️ 기술 챌린지**](#기술-챌린지)
+- [**기획 동기**](#기획-동기)
+- [**기술 스택**](#기술-스택)
+- [**기능 미리보기**](#기능-미리보기)
+- [**개발 과정에서 고민한 부분들**](#개발-과정에서-고민한-부분들)
   1. [콘솔창에 드러난 메서드 내부 로직의 은닉화](#1-콘솔창에-드러난-메서드-내부-로직의-은닉화)
   2. [상대로부터 전송받은 script 코드는 과연 안전할까? - XSS, 메서드 작성](#2-상대로부터-전송받은-script-코드는-과연-안전할까)
   3. [다양한 DOM 메서드를 데이터베이스에서 어떻게 구분할까?](#3-다양한-dom-메서드를-데이터베이스에서-어떻게-구분할까)
   4. [변경사항을 적용할 요소를 상대에게 어떻게 전달할 수 있을까? - XPath](#4-변경사항을-적용할-요소를-상대에게-어떻게-전달할-수-있을까)
   5. [React Fiber를 이용한 컴포넌트 트리 탐색과 비교 구현](#5-react-fiber를-이용한-컴포넌트-트리-탐색과-비교-구현)
   6. [CDN 관련 이슈 - 빌드 시 해쉬값 변경, jquery 버전 관리 참고](#6-cdn)
-- [**💬 프로젝트 회고**](#프로젝트-회고)
+- [**회고**](#회고)
 
 <br><br>
 
-## 💡 기획 동기
+## 기획 동기
 
 팀원 모두가 웹 퍼블리셔로서의 근무 경험이 있어, 웹 페이지의 스타일과 구조를 조정하고, 동적으로 변경하며 개발자 도구를 이용한 디버깅 경험이 많았습니다. 하지만 이러한 업무들은 개별적인 작업으로 팀원들에게 공유하기 어렵습니다.
 
@@ -48,7 +45,7 @@ con.chat은 <b>브라우저 개발자 도구의 콘솔창</b>을 이용하여 �
 
 <br><br>
 
-## 🔧 기술 스택
+## 기술 스택
 
 ### Client
 
@@ -56,12 +53,12 @@ con.chat은 <b>브라우저 개발자 도구의 콘솔창</b>을 이용하여 �
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![SCSS](https://img.shields.io/badge/Sass-CC6699?style=for-the-badge&logo=sass&logoColor=white)
 
-<details>
+<!-- <details>
 <summary>SCSS 도입 이유</summary>
 <br>
 scss 사용한 이유 작성하기
 
-</details>
+</details> -->
 
 ### Server
 
@@ -78,6 +75,7 @@ Firebase의 Realtime Database는 데이터 베이스 변경 사항을 실시간�
 또한 Firebase는 서버를 직접 관리하지 않아도 되는 서버리스 환경을 제공합니다. 콘챗은 콘솔에서 유저 간의 메시지를 송수신하며 서로의 DOM 조작을 통한 디버깅 서비스가 주요 기능이었기 때문에 복잡한 비즈니스 로직이 필요하지 않습니다. 따라서 서버리스 환경의 개발이 필요했고, 이외에도 배포 및 호스팅 등 Firebase가 제공하는 다양한 기능적 이점을 활용하기 위해 Firebase를 선택했습니다.
 
 </details>
+<br>
 
 ### Test
 
@@ -89,18 +87,17 @@ Firebase의 Realtime Database는 데이터 베이스 변경 사항을 실시간�
 
 <br><br>
 
-## 🔎 기능 설명
+## 기능 미리보기
 
 ### 1. 채팅 시작
 
 <details>
 <summary>
-  📺 미리보기
+  화면 보기
 </summary>
   <br>
   <img alt="채팅 시작" src="./images/conchat_chat.gif" width="600" />
 </details>
-<br>
 
 - `con.chat`: 채팅을 시작합니다.
 - `con.setLanguage('언어')`: 채팅 언어를 js 또는 react로 설정합니다.
@@ -113,7 +110,7 @@ Firebase의 Realtime Database는 데이터 베이스 변경 사항을 실시간�
 
 <details>
 <summary>
-  📺 미리보기
+  화면 보기
 </summary>
   <br>
   <p>❗️ User 1과 User 2가 실시간으로 채팅하는 영상입니다. 두 개의 화면을 함께 확인해주세요!</p>
@@ -122,7 +119,6 @@ Firebase의 Realtime Database는 데이터 베이스 변경 사항을 실시간�
   <h4>🙎‍♂️ User 2</h4>
   <img alt="방만들기" src="./images/conchat_room_user02.gif" width="600" />
 </details>
-<br>
 
 - `con.createDebugRoom('방이름')`: 디버깅 방을 생성합니다. 고유한 키가 생성됩니다.
 - `con.enterDebugRoom('방이름', '방의 고유한 키')`: 디버깅 방에 입장합니다. 방 이름과 키가 일치해야 합니다.
@@ -137,7 +133,7 @@ Firebase의 Realtime Database는 데이터 베이스 변경 사항을 실시간�
 
 <details>
 <summary>
-  📺 미리보기
+  화면 보기
 </summary>
   <br>
   <p>❗️ User 1과 User 2가 실시간으로 채팅하는 영상입니다. 두 개의 화면을 함께 확인해주세요!</p>
@@ -146,7 +142,6 @@ Firebase의 Realtime Database는 데이터 베이스 변경 사항을 실시간�
   <h4>🙎‍♂️ User 2</h4>
   <img alt="DOM조작" src="./images/conchat_dom_style,insert_user01.gif" width="600" />
 </details>
-<br>
 
 - `con.changeStyle('color: red;')`: 개발자 도구에서 클릭한 요소의 스타일을 변경합니다.
 - `con.insertElement(element, 'position')`: 개발자 도구에서 클릭한 요소의 주변으로 element를 지정된 위치에 삽입합니다.
@@ -155,7 +150,7 @@ Firebase의 Realtime Database는 데이터 베이스 변경 사항을 실시간�
 
 <details>
 <summary>
-  📺 미리보기
+  화면 보기
 </summary>
   <br>
   <p>❗️ User 1과 User 2가 실시간으로 채팅하는 영상입니다. 두 개의 화면을 함께 확인해주세요!</p>
@@ -164,7 +159,6 @@ Firebase의 Realtime Database는 데이터 베이스 변경 사항을 실시간�
   <h4>🙎‍♂️ User 2</h4>
   <img alt="DOM조작" src="./images/conchat_dom_text,attribute.remove_user02.gif" width="600" />
 </details>
-<br>
 
 - `con.removeElement(element)`: element 또는 개발자 도구에서 클릭한 요소를 삭제합니다.
 
@@ -176,12 +170,11 @@ Firebase의 Realtime Database는 데이터 베이스 변경 사항을 실시간�
 
 <details>
 <summary>
-  📺 미리보기
+  화면 보기
 </summary>
   <br>
   <img alt="방만들기" src="./images/react_tree,search.gif" width="600" />
 </details>
-<br>
 
 - `con.showComponentTree()`: 해당 페이지의 리액트 컴포넌트 트리를 보여줍니다.
 - `con.serachComponents('컴포넌트명')`: 컴포넌트의 이름을 검색하여 DOM 요소를 확인합니다.
@@ -190,7 +183,7 @@ Firebase의 Realtime Database는 데이터 베이스 변경 사항을 실시간�
 
 <details>
 <summary>
-  📺 미리보기
+  화면 보기
 </summary>
   <br>
   <p>❗️ User 1과 User 2가 실시간으로 채팅하는 영상입니다. 두 개의 화면을 함께 확인해주세요!</p>
@@ -199,7 +192,6 @@ Firebase의 Realtime Database는 데이터 베이스 변경 사항을 실시간�
   <h4>🙎‍♂️ User 2</h4>
   <img alt="방만들기" src="./images/conchat_react_share_user02.gif" width="600" />
 </details>
-<br>
 
 - `con.shareComponentTree('유저명')`: 리액트 컴포넌트 트리를 비교합니다. 발신자와 수신자의 state와 props를 비교합니다.
 
@@ -209,23 +201,22 @@ Firebase의 Realtime Database는 데이터 베이스 변경 사항을 실시간�
 
 <details>
 <summary>
-  📺 미리보기
+  화면 보기
 </summary>
   <br>
   <img alt="채팅 종료" src="./images/conchat_close.gif" width="600" />
 </details>
-<br>
 
 - `con.showGuide()`: con.chat 사용 가이드를 보여줍니다.
 - `con.close()`: 채팅을 종료합니다.
 
 <br/><br/>
 
-## ☄️ 기술 챌린지
+## 개발 과정에서 고민한 부분들
 
 ## 1. 콘솔창에 드러난 메서드 내부 로직의 은닉화
 
-con.chat 프로젝트를 설계할 때, 클래스형과 함수형의 접근 방식 중 어떤 것을 선택할지 두 방식의 특징을 비교해보며, <br>con.chat에 가장 적합한 방식을 찾고자 했습니다.
+con.chat 프로젝트를 설계할 때, 클래스형과 함수형의 접근 방식 중 어떤 것을 선택할지 두 방식의 특징을 비교해보며, con.chat에 가장 적합한 방식을 찾고자 했습니다.
 
 ### 1-1. 클래스형 vs 함수형 접근 방식 비교
 
@@ -623,7 +614,7 @@ con.chat의 핵심 기능 중 하나는 React 애플리케이션의 컴포넌트
 
 예를 들어,
 
-<center>
+<div>
 <table style="border-collapse: collapse;">
   <tr>
     <td style="border-right: 1px solid #eee; padding-right: 10px;">_reactRootContainer</td>
@@ -638,7 +629,7 @@ con.chat의 핵심 기능 중 하나는 React 애플리케이션의 컴포넌트
     <td style="padding-left: 10px;">이 속성은 주로 React의 포털(Portal) 요소에 존재</td>
   </tr>
 </table>
-</center>
+</div>
 
 등이 있으며 이러한 비공개 속성을 이용하여 리액트 Fiber Node에 접근할 수 있습니다.
 
@@ -655,7 +646,7 @@ con.chat의 핵심 기능 중 하나는 React 애플리케이션의 컴포넌트
 아래는 렌더링된 DOM 트리의 최상위 요소로부터 탐색하여 실제 FiberNode를 콘솔창에 출력한 결과입니다. 저희가 처음 FiberNode를 마주했을 때는 객체 안에 굉장히 많은 속성들을 담고 있어, 저희가 구현하기 위한 기능(컴포넌트 트리 출력, 컴포넌트 트리 비교)을 위해 꼭 필요한 속성들이 무엇인지 정의하는 과정이 필요하다고 판단했습니다.
 
 <p align="center">
-<img width="500" alt="FiberNode" src="https://github.com/user-attachments/assets/6dc79e83-b86d-4bf3-962f-17d26c52806f"><br>
+<img width="700" alt="FiberNode" src="https://github.com/user-attachments/assets/6dc79e83-b86d-4bf3-962f-17d26c52806f"><br>
 <i>최상위 DOM 요소로 부터 FiberNode를 추출한 결과</i>
 </p>
 
@@ -664,7 +655,7 @@ con.chat의 핵심 기능 중 하나는 React 애플리케이션의 컴포넌트
 Fiber 노드는 근본적으로 React의 렌더링 및 재조정 프로세스를 효율적으로 관리하기 위한 아키텍처로 작업 우선순위를 나타내는 `lanes`, `childLanes` 또는 side effects 유형을 나타내는 `effectTag`, 상태 및 속성을 나타내는 `memoizedProps`, `memoizedState`, `pendingProps` 등 매우 많은 속성이 존재합니다. <br> 
 심지어 `child`, `return`, `sibling` 속성들은 중첩 객체가 포함되어 더욱 복잡한 구조를 가지고 있음을 확인했습니다. 하지만 속성명에서도 쉽게 알 수 있듯, 저희는 `child`와 `sibling` 속성이 컴포넌트 트리 정보를 가지고 있을 것이라는 추측을 하였고, 이 속성들에 대해 더욱 조사하게 되었습니다.
 
-<center>
+<div align="center">
 <table style="border-collapse: collapse; width: 100%;">
   <tr>
     <th colspan="2" style="border: 1px solid #ddd; text-align: left;">Fiber 노드의 트리 구조 관련 속성</th>
@@ -682,7 +673,7 @@ Fiber 노드는 근본적으로 React의 렌더링 및 재조정 프로세스를
     <td style="border: 1px solid #ddd;">부모 Fiber 노드를 가리킴</td>
   </tr>
 </table>
-</center>
+</div>
 
 <br>
 
@@ -718,7 +709,7 @@ Fiber 노드는 근본적으로 React의 렌더링 및 재조정 프로세스를
 <br>
 
 <p align="center">
-<img width="300" alt="FiberNode" src="https://github.com/user-attachments/assets/dcaf7768-83ce-41f0-b848-26acdb9aa7ac"><br>
+<img width="500" alt="FiberNode" src="https://github.com/user-attachments/assets/dcaf7768-83ce-41f0-b848-26acdb9aa7ac"><br>
 <i>컴포넌트 트리 출력 결과</i>
 </p>
 
@@ -787,7 +778,7 @@ const invalidState = [
 
 <br><br>
 
-## 💬 프로젝트 회고
+## 회고
 
 <details>
 <summary>문승휘</summary>
