@@ -717,32 +717,44 @@ Fiber 노드는 근본적으로 React의 렌더링 및 재조정 프로세스를
 
 ### 5-3. Fiber 노드를 JSON으로 변환할 때의 문제
 
-`con.shareComponentTree(username)` 의 의미와 fiber의 다양한 속성들 중에 `elementType`, `child`, `memoizedState`, `memoizedProps` 만 추출한 이유
-순환 참조가 뭔지
+`con.shareComponentTree(username)` 메서드는 React 애플리케이션의 컴포넌트 트리를 시각화하고 사용자 간의 state와 props를 비교하는 메서드입니다. 이 메서드를 구현하는 과정에서 몇 가지 중요한 도전에 직면했습니다.
 
-1. 문제 인식: 객체 구조 단순화
+1. **문제 인식: 객체 구조 단순화**
 
-`con.shareComponentTree(username)` 메서드를 구현하기 위해선 지정된 사용자의 Fiber 객체를 JSON으로 변환하여 데이터베이스에 저장하는 과정이 필요했습니다.
+`con.shareComponentTree(username)` 메서드를 구현하기 위해서는 지정된 사용자의 Fiber 객체를 JSON으로 변환하여 데이터베이스에 저장하는 과정이 필요했습니다. 하지만 React Fiber 객체는 매우 방대하고 복잡한 구조를 가지고 있어, 이를 그대로 JSON으로 변환하면 크기가 커지고 비효율적이었습니다.
 
-React Fiber 객체는 방대하고 복잡하여 이를 그대로 JSON으로 변환하면 크기가 커지고 비효율적이기 때문에 필요한 정보만을 추출하여 새로운 객체에 담아 구조를 단순화하는 작업을 먼저 수행했습니다.
+이 문제를 해결하기 위해 우리는 필요한 정보만을 추출하여 새로운 객체에 담아 구조를 단순화하는 작업을 수행했습니다. 특히, 각 컴포넌트의 상태와 props를 추적하기 위해 `elementType`, `child`, `memoizedState`, `memoizedProps` 속성만을 선택적으로 추출했습니다.
 
-각 컴포넌트 상태와 props를 추적해야 하기 때문에, `elementType`, `child`, `memoizedState`, `memoizedProps`를 추출하고, 나머지 불필요한 속성들은 제거했습니다.
+이 속성들을 선택한 이유는 다음과 같습니다:
+- `elementType`: 컴포넌트의 타입을 식별합니다.
+- `child`: 컴포넌트 트리 구조를 유지하는 데 필요합니다.
+- `memoizedState`: 컴포넌트의 현재 상태를 나타냅니다.
+- `memoizedProps`: 컴포넌트에 전달된 props를 포함합니다.
 
-```jsx
-const fiberData = {
-  component: componentName,
-  state: cleanState(memoizedState, new Map(seen)),
-  props: cleanProps(memoizedProps, new Map(seen)),
-  children: [],
-};
+이 네 가지 속성만으로도 컴포넌트 트리의 구조와 각 컴포넌트의 핵심 정보를 충분히 표현할 수 있었습니다.
 
-```
+<div align="center">
+  <table>
+    <tr>
+      <td align="center"><img width="400" src="https://github.com/user-attachments/assets/4e800bcd-d5d2-4739-807f-31a55e155bce" alt="Fiber 객체"></td>
+      <td align="center"><img width="400" src="https://github.com/user-attachments/assets/b129fab0-d526-4c3a-827e-76d02205f111" alt="객체 구조 단순화"></td>
+    </tr>
+    <tr>
+      <td align="center">Fiber 객체</td>
+      <td align="center">객체 구조 단순화</td>
+    </tr>
+  </table>
+</div>
 
-2. JSON 변환 과정에서의 참조 순환 문제
+2. **JSON 변환 과정에서의 참조 순환 문제**
 
-객체 구조를 단순화한 후, 이를 JSON으로 변환하려고 했으나, 이 과정에서 순환 참조 에러가 발생했습니다. 이는 Fiber 구조 내부에서 `useEffect` 훅과 같은 의존성 문제로 인해 참조가 계속 컴포넌트 자체를 가리키는 경우가 있기 때문입니다. 이러한 문제는 JSON.stringify 함수가 순환 참조를 처리하지 못하기 때문에 발생합니다.
+객체 구조를 단순화한 후, 이를 JSON으로 변환하려고 했을 때 순환 참조 에러라는 새로운 문제에 직면했습니다. 순환 참조란 객체가 직접 또는 간접적으로 자기 자신을 참조하는 상황을 말합니다.
 
-순환 참조 문제를 해결하기 위해 `WeakSet`을 사용하여 이미 방문한 노드를 추적하고, 순환 참조를 방지하는 방식으로 해결했습니다.
+이 문제는 Fiber 구조 내부에서 `useEffect` 훅과 같은 의존성 문제로 인해 참조가 계속 컴포넌트 자체를 가리키는 경우에 발생했습니다. JSON.stringify 함수는 이러한 순환 참조를 처리하지 못하기 때문에 에러가 발생했습니다.
+
+이 문제를 해결하기 위해 두 가지 전략을 사용했습니다.
+
+첫째, `WeakSet`을 사용하여 이미 방문한 노드를 추적하고, 순환 참조를 방지했습니다.
 
 ```jsx
 const getCircularReplacer = () => {
@@ -757,7 +769,7 @@ const getCircularReplacer = () => {
 };
 ```
 
-또한, React 내부에서 순환 참조를 일으킬 수 있는 특정 속성들을 제거하여 순환 참조 문제를 방지했습니다. 예를 들어, deps 같은 경우 useEffect 등의 훅 의존성을 참조하여 순환 참조를 일으킬 수 있습니다. 그 외 속성들도 내부 동작과 관련된 것이기 때문에 제거하였습니다.
+둘째, React 내부에서 순환 참조를 일으킬 수 있는 특정 속성들을 제거했습니다. 예를 들어, `deps`와 같은 속성은 `useEffect` 등의 훅 의존성을 참조하여 순환 참조를 일으킬 수 있습니다. 이러한 속성들을 제거함으로써 추가적인 순환 참조 문제를 방지했습니다.
 
 ```jsx
 const invalidState = [
@@ -774,7 +786,7 @@ const invalidState = [
 ];
 ```
 
-이렇게 Fiber 노드를 간결한 구조로 정리하고, React 내부 속성을 제거한 후, `WeakSet`을 사용하여 순환 참조를 방지하며 JSON으로 안전하게 변환할 수 있었습니다.
+이러한 접근 방식을 통해 Fiber 노드를 간결한 구조로 정리하고, React 내부 속성을 제거한 후, `WeakSet`을 사용하여 순환 참조를 방지하며 JSON으로 안전하게 변환할 수 있었습니다.
 
 <br><br>
 
