@@ -834,13 +834,8 @@ const invalidState = [
 con.chat 서비스를 다른 사용자의 웹 사이트에서 사용할 수 있도록 하려면 어떻게 해야할까요?
 저희는 쉽게 CDN 방식을 떠올릴 수 있었습니다.
 
-```js
-<script
-  src="
-https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js
-"
-></script>
-```
+`<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+`
 
 이렇게 CDN 코드를 삽입하여 JavaScript 라이브러리를 사용하는 방식을 제공하는 것입니다.
 
